@@ -1,7 +1,8 @@
 # MGame Club
 
-MGame Club is a Discord Game Bot, where you can play various classic or new games directly in Discord! We focus on a modern an user friendly design to push fun to it limits!
+MGame Club is a Discord Game Bot, where you can play various classic or new games directly in Discord! We focus on a modern an user friendly design to push fun to it limits! You only need one single command, to start/ request a game. Game inputs only use buttons, dropdowns or modals to avoid much typing.\
 Note - MGame Club is running on a custom modified JDA Version to optimize performance and Kotlin usage!
+
 
 ## GAMES
 
@@ -18,10 +19,12 @@ Note - MGame Club is running on a custom modified JDA Version to optimize perfor
 - Daily quests to get coins
 - Buy cosmetics with coins or Server Boosts perks
 
-## IMPORTANT
+## DEVELOPMENT
 
-Feel free to clone this repo and add new games to it!
-Just follow the project structure and maybe it will added.
+Note - MGame Club is running on a custom modified JDA Version to optimize performance and Kotlin usage!\
+
+Feel free to clone this repo and add new games to it.
+Just follow the project structure and maybe it will added!
 
 Licence -> [![CC BY-NC-SA 4.0][cc-by-nc-sa-shield]][cc-by-nc-sa]
 
