@@ -1,12 +1,12 @@
 # MGame Club
 
-MGame Club is a Discord Game Bot, where you can play various classic or new games directly in Discord! We focus on a modern an user friendly design to push fun to it limits! You only need one single command, to start/ request a game. Game inputs only use buttons, dropdowns or modals to avoid much typing.\
+MGame Club is a Discord Game Bot, where you can play various classic or new games directly in Discord! We focus on a modern an user friendly design to push fun to it limits! You only need one single command, to start/ request a game. Game inputs only use buttons, dropdowns or modals to avoid much typing.
 
 
 ## GAMES
 
 - Tic-Tac-Toe (2-Player - Bot AI)
-- Connect-4 (2-Player - Cosmetics included - Bot AI)
+- Connect-4 (2-Player - Bot AI - Cosmetics included)
 - Chess (2-Player - Cosmetics coming soon)
 
 ## FUNCTIONS
