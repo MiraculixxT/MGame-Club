@@ -5,6 +5,7 @@ import dev.minn.jda.ktx.interactions.components.button
 import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.editMessage_
 import dev.minn.jda.ktx.messages.reply_
+import net.dv8tion.jda.api.entities.MessageEmbed
 import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import net.dv8tion.jda.api.interactions.components.ActionRow
@@ -24,7 +25,22 @@ class TriviaButton : ButtonEvent {
         if (split[2] == "REPLAY") {
             it.editButton(it.button.asDisabled()).queue()
             val message = it.message
-            val gen = generateQuestion(TriviaCategory.RANDOM, TriviaDifficulty.RANDOM, userID)
+            val embed = message.embeds.firstOrNull()
+            val gen = if (embed == null || embed.description == null) {
+                generateQuestion(TriviaCategory.RANDOM, TriviaDifficulty.RANDOM, userID)
+            } else {
+                val description = embed.description
+                val category =
+                    TriviaCategory.values().firstOrNull { i -> description?.contains("``${i.title}``") == true }
+                val difficulty =
+                    TriviaDifficulty.values().firstOrNull { i -> description?.contains("``${i.title}``") == true }
+
+                generateQuestion(
+                    category ?: TriviaCategory.RANDOM,
+                    difficulty ?: TriviaDifficulty.RANDOM,
+                    userID
+                )
+            }
             message.editMessageEmbeds(listOf(gen.first)).setComponents(listOf(gen.second)).queue()
             return
         }
