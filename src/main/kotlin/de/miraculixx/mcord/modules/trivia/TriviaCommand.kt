@@ -64,7 +64,7 @@ suspend fun generateQuestion(category: TriviaCategory, difficulty: TriviaDifficu
         val cat = TriviaCategory.getByTitle(trivia.category.replace(":", " -"))
         title = "\uD83E\uDDE9  || **Trivia Quiz**"
         description = "> Difficulty -> ``${diff?.title}``\n" +
-                "> Category -> ``${cat.title}``\n" +
+                "> Category -> ``${cat.title}${if (category == TriviaCategory.RANDOM) " (random)" else ""}``\n" +
                 "\n" +
                 "```fix\n" +
                 "${question}```"
