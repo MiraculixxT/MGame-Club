@@ -1,0 +1,25 @@
+{
+  "connect4": {
+    "rawEmotes": [
+      { "emote": "🔵", "price": 300 },
+      { "emote": "🟤", "price": 300 },
+      { "emote": "🟢", "price": 300 },
+      { "emote": "🟠", "price": 300 },
+      { "emote": "🟣", "price": 300 },
+      { "emote": "😳", "price": 1500 },
+      { "emote": "🤓", "price": 1500 },
+      { "emote": "😎", "price": 1500 },
+      { "emote": "😡", "price": 3000 },
+      { "emote": "🥶", "price": 3000 },
+      { "emote": "🤡", "price": 3000 },
+      { "emote": "😈", "price": 3000 }
+    ],
+    "specialEmotes": [
+      { "emote": "<:OMEGALUL:816312423115915305>", "price": 5000 },
+      { "emote": "<:DD:852962423094509638>", "price": 5000 },
+      { "emote": "<:xD:949671949670428733>", "price": 5000 },
+      { "emote": "<:protect:885240719202197545>", "price": 5000 },
+      { "emote": "<:mcHeart:748568708900847658>", "price": 5000 }
+    ]
+  }
+}

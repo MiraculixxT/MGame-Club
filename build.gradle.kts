@@ -1,6 +1,8 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
-    kotlin("jvm") version "1.7.20"
-    kotlin("plugin.serialization") version "1.7.20"
+    kotlin("jvm") version "2.2.10"
+    kotlin("plugin.serialization") version "2.2.10"
     application
 }
 
@@ -15,18 +17,19 @@ repositories {
 
 dependencies {
     //JDA - Discord API Wrapper
-    implementation("net.dv8tion", "JDA", "5.0.0-beta.13")
-    implementation("com.github.minndevelopment", "jda-ktx","0.10.0-beta.1")
+    implementation("net.dv8tion", "JDA", "5.6.1")
+    implementation("com.github.minndevelopment", "jda-ktx","0.12.0")
 
     //JetBrains Libraries
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.4.1")
-    implementation("org.jetbrains.kotlinx", "kotlinx-datetime", "0.4.0")
+    implementation("org.jetbrains.kotlinx", "kotlinx-serialization-json", "1.9.+")
+    implementation("org.jetbrains.kotlinx", "kotlinx-coroutines-core", "1.10.+")
+    implementation("org.jetbrains.kotlinx", "kotlinx-datetime", "0.7.1")
     implementation("org.apache.commons", "commons-text", "1.10.0")
     //implementation(compose.desktop.linux_x64)
 
     //Ktor - Web API Library
-    implementation("io.ktor", "ktor-client-core-jvm", "2.0.1")
-    implementation("io.ktor", "ktor-client-cio", "2.0.1")
+    implementation("io.ktor", "ktor-client-core-jvm", "3.2.3")
+    implementation("io.ktor", "ktor-client-cio", "3.2.3")
 
     //Logging Libraries
     implementation("ch.qos.logback", "logback-classic", "1.2.8")
@@ -46,6 +49,6 @@ tasks {
         options.release.set(17)
     }
     compileKotlin {
-        kotlinOptions.jvmTarget = "17"
+        compilerOptions.jvmTarget.set(JvmTarget.JVM_17)
     }
 }

@@ -29,7 +29,7 @@ enum class TriviaCategory(val id: Int, val title: String) {
 
     companion object {
         fun getByTitle(title: String): TriviaCategory {
-            return values().firstOrNull { it.title == title } ?: RANDOM
+            return entries.firstOrNull { it.title == title } ?: RANDOM
         }
     }
 }

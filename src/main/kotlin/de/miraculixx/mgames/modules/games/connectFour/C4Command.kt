@@ -1,8 +1,7 @@
 package de.miraculixx.mgames.modules.games.connectFour
 
-import de.miraculixx.mgames.config.Config
 import de.miraculixx.mgames.config.ConfigManager
-import de.miraculixx.mgames.config.Configs
+import de.miraculixx.mgames.config.Connect4Settings
 import de.miraculixx.mgames.modules.games.utils.GameTools
 import de.miraculixx.mgames.modules.games.utils.enums.Game
 import de.miraculixx.mgames.modules.games.utils.enums.SkinType
@@ -27,7 +26,7 @@ class C4Command : SlashCommandEvent {
             val secEmotes = userEmotes.owned.filter { it.key == "C4_S" }.values
 
             //Building default skin dropdowns
-            val conf = ConfigManager.getConfig(Configs.GAME_SETTINGS)
+            val conf = ConfigManager.gameSettingsConfig.connect4
             val primary = StringSelectMenu("GAME_C4_SKIN_1") {
                 placeholder = "Primary Chip Skin"
                 minValues = 1
@@ -70,16 +69,16 @@ class C4Command : SlashCommandEvent {
         }
     }
 
-    private fun addEmotes(config: Config, list: Collection<String>, current: String): List<SelectOption> {
+    private fun addEmotes(config: Connect4Settings, list: Collection<String>, current: String): List<SelectOption> {
         return buildList {
-            config.getObjectList<Int>("Connect4-RawEmotes").forEach { (emote, price) ->
+            config.rawEmotes.forEach { (emote, price) ->
                 if (list.contains(emote))
                     if (current == emote)
                         add(addEmote(emote, SkinType.SELECTED))
                     else add(addEmote(emote, SkinType.BOUGHT))
                 else add(addEmote(emote, SkinType.COINS, price))
             }
-            config.getStringList("Connect4-SpecialEmotes").forEach { emote ->
+            config.specialEmotes.forEach { (emote, price) ->
                 if (current == emote)
                     add(addEmote(emote, SkinType.SELECTED))
                 else add(addEmote(emote, SkinType.BOOST))

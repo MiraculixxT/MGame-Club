@@ -1,10 +1,10 @@
 package de.miraculixx.mgames
 
 import de.miraculixx.mgames.config.ConfigManager
-import de.miraculixx.mgames.config.Configs
 import de.miraculixx.mgames.modules.games.GameManager
 import de.miraculixx.mgames.modules.games.UpdaterGame
 import de.miraculixx.mgames.modules.utils.events.TabComplete
+import de.miraculixx.mgames.utils.api.SQL
 import de.miraculixx.mgames.utils.log
 import de.miraculixx.mgames.utils.manager.ButtonManager
 import de.miraculixx.mgames.utils.manager.DropDownManager
@@ -41,10 +41,10 @@ class Main {
         INSTANCE = this
         KTOR = HttpClient(CIO)
 
-        val coreConf = ConfigManager.getConfig(Configs.CORE)
-        val settingsConf = ConfigManager.getConfig(Configs.SETTINGS)
+        val coreConf = ConfigManager.coreConfig
+        val settingsConf = ConfigManager.settingsConfig
 
-        jda = default(coreConf.getString("DISCORD_TOKEN")) {
+        jda = default(coreConf.DISCORD_TOKEN) {
             disableCache(CacheFlag.VOICE_STATE)
             setActivity(Activity.competing("Chess Games"))
             setStatus(OnlineStatus.DO_NOT_DISTURB)
@@ -58,9 +58,10 @@ class Main {
         SlashCommandManager.startListen(jda)
         TabComplete.startListen(jda)
 
-        updater = if (settingsConf.getBoolean("Updater"))
+        updater = if (settingsConf.updater)
             UpdaterGame.start(jda) else null
-        //SQL
+
+        SQL
         "MKord is now online!".log()
 
         shutdown()

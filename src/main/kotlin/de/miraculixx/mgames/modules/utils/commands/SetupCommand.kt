@@ -1,7 +1,5 @@
 package de.miraculixx.mgames.modules.utils.commands
 
-import de.miraculixx.mgames.config.guildCache
-import de.miraculixx.mgames.config.msg
 import de.miraculixx.mgames.modules.games.UpdaterGame
 import de.miraculixx.mgames.utils.api.SQL
 import de.miraculixx.mgames.utils.entities.SlashCommandEvent
@@ -79,15 +77,15 @@ class SetupCommand : SlashCommandEvent {
                     else -> "Error"
                 }
                 SQL.call("UPDATE guildData SET lang='$langKey' WHERE Discord_ID=$guildID")
-                guildCache[guildID] = langKey
+
                 it.replyEmbeds(
                     Embed {
                         title = "\uD83C\uDF0D  **||  LANGUAGE SWITCHER**"
                         description = "```diff\n" +
-                                "+ ${msg("systemLanguageSwitch", guildID)}```\n" +
+                                "+ systemLanguageSwitch```\n" +
                                 "**New Language ~~⠀⠀>~~** `$language ($langKey)`\n" +
                                 "<:blanc:784059217890770964>\n" +
-                                msg("systemLanguageInfo", guildID)
+                                "systemLanguageInfo"
                         color = 0xc99d11
                         footer {
                             name = "MGame-Club - Play games inside of Discord everywhere!"

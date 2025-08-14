@@ -1,0 +1,59 @@
+CREATE TABLE userData (
+    ID INT AUTO_INCREMENT PRIMARY KEY,
+    Guild_ID BIGINT NOT NULL,
+    Discord_ID BIGINT NOT NULL,
+    Coins INT NOT NULL
+);
+
+CREATE UNIQUE INDEX idx_user_unique ON userData(Guild_ID, Discord_ID);
+
+CREATE TABLE userEmotes (
+    ID INT NOT NULL,
+    Emote_Type VARCHAR(255) NOT NULL,
+    Emote VARCHAR(255) NOT NULL,
+    FOREIGN KEY (ID) REFERENCES userData(ID)
+);
+
+CREATE TABLE userEmotesActive (
+    ID INT PRIMARY KEY,
+    C4_P VARCHAR(255) NOT NULL,
+    C4_S VARCHAR(255) NOT NULL,
+    FOREIGN KEY (ID) REFERENCES userData(ID)
+);
+
+CREATE TABLE userWins (
+    ID INT PRIMARY KEY,
+    TTT INT NOT NULL,
+    TTT_Bot INT NOT NULL,
+    C4 INT NOT NULL,
+    C4_Bot INT NOT NULL,
+    Chess INT NOT NULL,
+    Chess_Bot INT NOT NULL,
+    FOREIGN KEY (ID) REFERENCES userData(ID)
+);
+
+CREATE TABLE userDaily (
+    ID INT PRIMARY KEY,
+    Task_1 BOOLEAN NOT NULL,
+    Task_2 BOOLEAN NOT NULL,
+    Task_3 BOOLEAN NOT NULL,
+    Task_Bonus BOOLEAN NOT NULL,
+    FOREIGN KEY (ID) REFERENCES userData(ID)
+);
+
+CREATE TABLE guildData (
+    ID INT AUTO_INCREMENT PRIMARY KEY,
+    Discord_ID BIGINT NOT NULL,
+    Premium BOOLEAN NOT NULL,
+    Stats_Channel BIGINT NOT NULL,
+    Language VARCHAR(10) NOT NULL
+);
+
+CREATE INDEX idx_guild_discord_id ON guildData(Discord_ID);
+
+CREATE TABLE globalDaily (
+    Task_1 VARCHAR(255) NOT NULL,
+    Task_2 VARCHAR(255) NOT NULL,
+    Task_3 VARCHAR(255) NOT NULL,
+    Task_Bonus VARCHAR(255) NOT NULL
+);

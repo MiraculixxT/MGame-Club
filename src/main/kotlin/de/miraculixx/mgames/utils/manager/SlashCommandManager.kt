@@ -46,10 +46,10 @@ object SlashCommandManager {
         jda.updateCommands().addCommands(
             Command("trivia", "Question your self some trivia!") {
                 option<String>("category", "Choose any category") {
-                    TriviaCategory.values().forEach { choice(it.title, it.name) }
+                    TriviaCategory.entries.forEach { choice(it.title, it.name) }
                 }
                 option<String>("difficulty", "Choose any difficulty") {
-                    TriviaDifficulty.values().forEach { choice(it.title, it.name) }
+                    TriviaDifficulty.entries.forEach { choice(it.title, it.name) }
                 }
             },
             Command("tictactoe", "Play Tic-Tac-Toe against others") {

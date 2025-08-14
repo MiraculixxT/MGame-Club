@@ -5,14 +5,16 @@ import de.miraculixx.mgames.utils.api.SQL
 import de.miraculixx.mgames.utils.dailyGoals
 import de.miraculixx.mgames.utils.entities.SlashCommandEvent
 import dev.minn.jda.ktx.messages.Embed
-import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
+import kotlin.time.Clock
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.ExperimentalTime
 
+@OptIn(ExperimentalTime::class)
 class CoinsCommand : SlashCommandEvent {
     override suspend fun trigger(it: SlashCommandInteractionEvent) {
         val ownStats = it.getOption("user") == null
@@ -39,9 +41,9 @@ class CoinsCommand : SlashCommandEvent {
                 field {
                     name = "\uD83C\uDFAF  ||  DAILY CHALLENGES"
                     value = "```diff\n" +
-                            "${if (dailyData.c1) "+" else "-"} ${msg(dailyGoals?.get(0)?.name, guildID)}\n" +
-                            "${if (dailyData.c2) "+" else "-"} ${msg(dailyGoals?.get(1)?.name, guildID)}\n" +
-                            "${if (dailyData.c3) "+" else "-"} ${msg(dailyGoals?.get(2)?.name, guildID)}\n" +
+                            "${if (dailyData.c1) "+" else "-"} ${msg(dailyGoals?.getOrNull(0)?.name, guildID)}\n" +
+                            "${if (dailyData.c2) "+" else "-"} ${msg(dailyGoals?.getOrNull(1)?.name, guildID)}\n" +
+                            "${if (dailyData.c3) "+" else "-"} ${msg(dailyGoals?.getOrNull(2)?.name, guildID)}\n" +
                             "```\n" +
                             "> New Challenges <t:$timestamp:R>" +
                             if (!member.isBoosting) "\n*Boost to Unlock Bonus Rewards*" else ""
@@ -49,9 +51,9 @@ class CoinsCommand : SlashCommandEvent {
                 field {
                     name = "**REWARDS**"
                     value = "```ini\n" +
-                            "${if (dailyData.c1) "]" else "["}=> ${dailyGoals?.get(0)?.reward}\n" +
-                            "${if (dailyData.c1) "]" else "["}=> ${dailyGoals?.get(1)?.reward}\n" +
-                            "${if (dailyData.c1) "]" else "["}=> ${dailyGoals?.get(2)?.reward}\n" +
+                            "${if (dailyData.c1) "]" else "["}=> ${dailyGoals?.getOrNull(0)?.reward}\n" +
+                            "${if (dailyData.c1) "]" else "["}=> ${dailyGoals?.getOrNull(1)?.reward}\n" +
+                            "${if (dailyData.c1) "]" else "["}=> ${dailyGoals?.getOrNull(2)?.reward}\n" +
                             "```"
                 }
             }
@@ -63,7 +65,7 @@ class CoinsCommand : SlashCommandEvent {
                 field {
                     name = "<:booster:981486698431127602> ||  BONUS CHALLENGE"
                     value = "```diff\n" +
-                            "${if (dailyData.bonus) "+" else "-"} ${msg(dailyGoals?.get(3)?.name, guildID)}\n" +
+                            "${if (dailyData.bonus) "+" else "-"} ${msg(dailyGoals?.getOrNull(3)?.name, guildID)}\n" +
                             "```"
                 }
                 field {

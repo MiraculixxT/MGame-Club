@@ -4,5 +4,5 @@ import net.dv8tion.jda.api.events.interaction.component.GenericSelectMenuInterac
 import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu
 
 interface DropDownEvent {
-    suspend fun trigger(it: GenericSelectMenuInteractionEvent<String, StringSelectMenu>) {}
+    suspend fun trigger(it: GenericSelectMenuInteractionEvent<String, StringSelectMenu>)
 }

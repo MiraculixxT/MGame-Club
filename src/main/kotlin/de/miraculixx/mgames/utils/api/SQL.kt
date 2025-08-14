@@ -1,7 +1,6 @@
 package de.miraculixx.mgames.utils.api
 
 import de.miraculixx.mgames.config.ConfigManager
-import de.miraculixx.mgames.config.Configs
 import de.miraculixx.mgames.utils.Color
 import de.miraculixx.mgames.utils.error
 import de.miraculixx.mgames.utils.log
@@ -15,9 +14,9 @@ object SQL {
 
     private fun connect(): Connection {
         val con = DriverManager.getConnection(
-            "jdbc:mariadb://miraculixx.de:3306/mcord",
-            "mcord",
-            ConfigManager.getConfig(Configs.CORE).getString("SQL_TOKEN")
+            "jdbc:mariadb://miraculixx.de:3306/MGames",
+            "MGamesBot",
+            ConfigManager.coreConfig.SQL_TOKEN
         )
         if (con.isValid(0))
             ">> Connection established to MariaDB".log(Color.GREEN)
