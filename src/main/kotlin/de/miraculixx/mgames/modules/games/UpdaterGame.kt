@@ -9,7 +9,6 @@ import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.edit
 import dev.minn.jda.ktx.messages.send
 import kotlinx.coroutines.*
-import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import net.dv8tion.jda.api.JDA
@@ -18,11 +17,14 @@ import net.dv8tion.jda.api.entities.MessageHistory
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
 import net.dv8tion.jda.api.exceptions.InsufficientPermissionException
 import java.sql.ResultSet
+import kotlin.time.Clock
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.ExperimentalTime
 
 
+@OptIn(ExperimentalTime::class)
 object UpdaterGame {
     private var JDA: JDA? = null
 
@@ -60,8 +62,8 @@ object UpdaterGame {
 
     suspend fun updateDailyChallenges() {
         "---=---> DAILY UPDATE <---=---".log(Color.YELLOW)
-        val list = DailyGoals.values().filter { !it.bonus }.toMutableList()
-        val bonus = DailyGoals.values().filter { it.bonus }
+        val list = DailyGoals.entries.filter { !it.bonus }.toMutableList()
+        val bonus = DailyGoals.entries.filter { it.bonus }
 
         dailyGoals = buildList {
             repeat(3) {
@@ -98,7 +100,7 @@ object UpdaterGame {
     suspend fun updateLeaderboardGuild(guild: Guild, statsChannel: MessageChannel?) {
         val guildID = guild.idLong
         if (statsChannel == null) {
-            SQL.call("UPDATE guildData WHERE Discord_ID=$guildID SET Stats_Channel=0")
+            SQL.call("UPDATE guildData SET Stats_Channel=0 WHERE Discord_ID=$guildID")
             " - GUILD REMOVE > $guildID deleted their stats channel".log(Color.YELLOW)
             return
         }

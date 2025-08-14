@@ -82,6 +82,10 @@ class Main {
                         println("MKord is now offline!")
                         online = false
                     }
+                    "reload" -> {
+                        ConfigManager.reloadConfig()
+                        println("Reloaded all configurations and games!")
+                    }
 
                     else -> {
                         println("Command $out not found!\nCurrent Commands -> 'exit'")

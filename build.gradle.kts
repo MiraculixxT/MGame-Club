@@ -32,7 +32,8 @@ dependencies {
     implementation("io.ktor", "ktor-client-cio", "3.2.3")
 
     //Logging Libraries
-    implementation("ch.qos.logback", "logback-classic", "1.2.8")
+    implementation("ch.qos.logback", "logback-classic", "1.4.14")
+    implementation("ch.qos.logback", "logback-core", "1.4.14")
 
     //Data Storing Libraries (YAML + SQL)
     implementation("org.yaml", "snakeyaml", "1.21")
