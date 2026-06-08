@@ -54,7 +54,6 @@ CREATE TABLE IF NOT EXISTS userDailyPlay (
     Game VARCHAR(64) NOT NULL,
     Last_Play_Date VARCHAR(10) NOT NULL,
     Streak INT NOT NULL,
-    Last_Claim_Date VARCHAR(10) NOT NULL,
     PRIMARY KEY (ID, Game),
     FOREIGN KEY (ID) REFERENCES userData(ID)
 );

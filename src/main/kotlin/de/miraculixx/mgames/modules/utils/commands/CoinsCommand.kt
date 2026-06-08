@@ -50,8 +50,8 @@ class CoinsCommand : SlashCommandEvent {
                         val today = GoalManager.currentDailyDate().toString()
                         Game.entries.forEach { game ->
                             val data = dailyData.firstOrNull { it.game == game.name }
-                            val claimed = data?.lastClaimDate == today
-                            append("${if (claimed) "+" else "-"} ${game.title} | Streak ${data?.streak ?: 0}\n")
+                            val completed = data?.lastPlayDate == today
+                            append("${if (completed) "+" else "-"} ${game.title} | Streak ${data?.streak ?: 0}\n")
                         }
                         append("```\n")
                         append("> New Daily Plays <t:$timestamp:R>")

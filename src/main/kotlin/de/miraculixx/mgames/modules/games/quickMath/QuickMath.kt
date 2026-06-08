@@ -1,28 +1,32 @@
 package de.miraculixx.mgames.modules.games.quickMath
 
 import de.miraculixx.mgames.modules.games.GoalManager
+import de.miraculixx.mgames.modules.games.utils.coinGrantFooter
 import de.miraculixx.mgames.modules.games.utils.enums.Game
 import de.miraculixx.mgames.modules.games.utils.enums.GameMode
 import de.miraculixx.mgames.utils.entities.ButtonEvent
 import de.miraculixx.mgames.utils.entities.ModalEvent
 import de.miraculixx.mgames.utils.entities.SlashCommandEvent
-import dev.minn.jda.ktx.messages.Embed
-import net.dv8tion.jda.api.components.actionrow.ActionRow
+import dev.minn.jda.ktx.interactions.components.Modal
+import dev.minn.jda.ktx.interactions.components.TextDisplay
+import dev.minn.jda.ktx.interactions.components.TextInput
+import net.dv8tion.jda.api.components.MessageTopLevelComponent
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import net.dv8tion.jda.api.interactions.callbacks.IModalCallback
 import net.dv8tion.jda.api.components.buttons.Button
 import net.dv8tion.jda.api.components.buttons.ButtonStyle
-import net.dv8tion.jda.api.components.label.Label
-import net.dv8tion.jda.api.components.textinput.TextInput
+import net.dv8tion.jda.api.components.container.Container
+import net.dv8tion.jda.api.components.section.Section
+import net.dv8tion.jda.api.components.separator.Separator
+import net.dv8tion.jda.api.components.textdisplay.TextDisplay
 import net.dv8tion.jda.api.components.textinput.TextInputStyle
-import net.dv8tion.jda.api.modals.Modal
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.abs
 import kotlin.random.Random
 
-object QuickMathCommand : SlashCommandEvent, ModalEvent, ButtonEvent {
+object QuickMath : SlashCommandEvent, ModalEvent, ButtonEvent {
     private const val PLAY_BUTTON_ID = "22142abbf1c74da187fdabd4b59d4456"
     private const val ANSWER_INPUT_ID = "ANSWER"
     private const val MODAL_PREFIX = "QUICK-MATH"
@@ -30,7 +34,13 @@ object QuickMathCommand : SlashCommandEvent, ModalEvent, ButtonEvent {
     private val invisibleChars = listOf("\u200B", "\u200C", "\u200D", "\u2060")
 
     override suspend fun trigger(it: SlashCommandInteractionEvent) {
-        it.openChallenge(it.user.idLong, daily = it.subcommandName == "daily")
+        val daily = it.subcommandName == "daily"
+        val guildId = it.guild?.idLong
+        if (daily && guildId != null && GoalManager.hasCompletedDaily(Game.QUICK_MATH, it.user.idLong, guildId)) {
+            it.reply("```diff\n- Daily Quick Math wurde heute bereits abgeschlossen.```").setEphemeral(true).queue()
+            return
+        }
+        it.openChallenge(it.user.idLong, daily)
     }
 
     override suspend fun trigger(it: ButtonInteractionEvent) {
@@ -43,18 +53,12 @@ object QuickMathCommand : SlashCommandEvent, ModalEvent, ButtonEvent {
         val challenge = if (daily) createChallenge(Random(GoalManager.getDailySeed())) else createChallenge(Random.Default)
         challenges[modalId] = challenge
 
-        val answer = TextInput.create(ANSWER_INPUT_ID, TextInputStyle.SHORT)
-            .setPlaceholder("Antwort als ganze Zahl")
-            .setRequired(true)
-            .setMinLength(1)
-            .setMaxLength(20)
-            .build()
-
-        replyModal(
-            Modal.create(modalId, "Quick Math")
-                .addComponents(Label.of(challenge.hiddenQuestion, answer))
-                .build()
-        ).queue()
+        replyModal(Modal(modalId, "Quick Math") {
+            label(challenge.hiddenQuestion) {
+                child = TextInput(ANSWER_INPUT_ID, TextInputStyle.SHORT, requiredLength = 1..20, placeholder = "Antwort als ganze Zahl")
+            }
+            components += TextDisplay("__Spickzettel__\n- * % vor + - (Punkt vor Strich)\n- % ist Rest einer Division (modulo)\n- Nutze das Textfeld zum Zwischenspeichern")
+        }).queue()
     }
 
     override suspend fun trigger(it: ModalInteractionEvent) {
@@ -80,24 +84,41 @@ object QuickMathCommand : SlashCommandEvent, ModalEvent, ButtonEvent {
             it.reply("Dieses Quick-Math Rätsel ist abgelaufen. Bitte starte `/quick-math` erneut.").queue()
             return
         }
+        val guildId = it.guild?.idLong ?: return
+        if (daily && GoalManager.hasCompletedDaily(Game.QUICK_MATH, targetUserId, guildId)) {
+            it.reply("```diff\n- Daily Quick Math wurde heute bereits abgeschlossen.```").setEphemeral(true).queue()
+            return
+        }
+        it.deferReply().queue()
 
         val elapsedMs = System.currentTimeMillis() - startedAt
         val elapsed = "%.2f".format(elapsedMs / 1000.0)
         val success = answer == challenge.result
-        val guildId = it.guild?.idLong ?: return
-        GoalManager.registerGameResult(
-            Game.QUICK_MATH,
-            GameMode.SOLO,
-            winnerSnowflake = if (success) targetUserId else null,
-            loserSnowflake = if (success) null else targetUserId,
-            guildSnowflake = guildId
-        )
         val dailyResult = if (success && daily) {
             GoalManager.registerDailyCompletion(Game.QUICK_MATH, targetUserId, guildId, 1)
         } else null
+        val coins = if (success && (!daily || dailyResult?.completed == true)) {
+            GoalManager.registerGameResult(
+                Game.QUICK_MATH,
+                GameMode.SOLO,
+                winnerSnowflake = targetUserId,
+                loserSnowflake = null,
+                guildSnowflake = guildId
+            ) + (dailyResult?.reward ?: 0)
+        } else if (!daily && !success) {
+            GoalManager.registerGameResult(
+                Game.QUICK_MATH,
+                GameMode.SOLO,
+                winnerSnowflake = null,
+                loserSnowflake = targetUserId,
+                guildSnowflake = guildId
+            )
+            0
+        } else 0
+        val streak = if (daily) dailyResult?.streak ?: -1 else null
 
-        it.replyEmbeds(buildResultEmbed(challenge, answerRaw, elapsed, success, targetUserId, dailyResult?.reward ?: 0, dailyResult?.streak))
-            .addComponents(ActionRow.of(Button.of(ButtonStyle.SUCCESS, PLAY_BUTTON_ID, "PLAY")))
+        it.hook.editOriginalComponents(buildResultEmbed(challenge, answerRaw, elapsed, success, targetUserId, coins, streak))
+            .useComponentsV2()
             .queue()
     }
 
@@ -109,25 +130,31 @@ object QuickMathCommand : SlashCommandEvent, ModalEvent, ButtonEvent {
         user: Long,
         reward: Int,
         streak: Int?
-    ) = Embed {
-        title = "\uD83C\uDFB2 Quick Math"
-        color = if (success) 0x2ECC71 else 0xE74C3C
-
+    ): List<MessageTopLevelComponent> {
         val result = challenge.result.toString()
-        val answerLine = if (success) {
-            "- Richtige Antwort  >> `$result`\n- Zeit                           >> `${elapsed}s`" +
-                when {
-                    reward > 0 -> "\n- Daily Reward          >> `$reward Coins`\n- Daily Streak            >> `$streak`"
-                    streak != null -> "\n- Daily Reward          >> `already claimed`\n- Daily Streak            >> `$streak`"
-                    else -> ""
-                }
+        val answerLine = if (streak != null) {
+            if (success) "- Richtig Beantwortet!"
+            else "- Falsch Beantwortet :/"
         } else {
-            "- Falsche Antwort  >> `${submitted.ifBlank { "<leer>" }}` (`$result`)"
+            if (success) "- Richtig  >> `$result`\n- Zeit                           >> `${elapsed}s`"
+            else "- Falsch  >> `${submitted.ifBlank { "<leer>" }}` (`$result`)"
         }
 
-        description = "- Challenge                  >> `${challenge.cleanQuestion}`\n" +
-                "$answerLine\n" +
-                "-# Beantwortet von <@$user>"
+        return listOf(
+            Container.of(
+                Section.of(
+                    Button.of(ButtonStyle.SUCCESS, PLAY_BUTTON_ID, "𝗣𝗟𝗔𝗬"),
+                    TextDisplay.of("## 🎲 Quick Math")
+                ),
+                Separator.createDivider(Separator.Spacing.SMALL),
+                TextDisplay.of(
+                    if (streak == null) "- Challenge >> `${challenge.cleanQuestion}`" else {"- Daily Challenge"} +
+                        "\n$answerLine" +
+                        if (streak != null && streak > 0) "\n- Streak >> `${streak}`" else {""} +
+                        "\n-# Von <@$user>${coinGrantFooter(reward)}"
+                )
+            ).withAccentColor(if (success) 0x2ECC71 else 0xE74C3C)
+        )
     }
 
     private fun createChallenge(random: Random): MathChallenge {

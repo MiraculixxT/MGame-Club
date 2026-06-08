@@ -1,13 +1,13 @@
 package de.miraculixx.mgames.utils.manager
 
-import de.miraculixx.mgames.modules.games.quickMath.QuickMathCommand
+import de.miraculixx.mgames.modules.games.quickMath.QuickMath
 import dev.minn.jda.ktx.events.listener
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
 
 object ModalManager {
     private val modals = mapOf(
-        "quick-math" to QuickMathCommand
+        "quick-math" to QuickMath
     )
 
     fun startListen(jda: JDA) = jda.listener<ModalInteractionEvent> {

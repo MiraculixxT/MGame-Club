@@ -44,6 +44,10 @@ class GameTools(private val gameTag: String, private val gameName: String, priva
             "daily" -> {
                 val option = it.getOption("difficulty")?.asString ?: "Easy"
                 val level = option.toDifficultyLevel()
+                if (GoalManager.hasCompletedDaily(game, member.idLong, discordID)) {
+                    it.reply("```diff\n- Daily ${game.title} wurde heute bereits abgeschlossen.```").setEphemeral(true).queue()
+                    return
+                }
                 it.reply("```diff\n+ Daily ${game.title} wird gestartet!\n+ Difficulty: $option```").setEphemeral(true).queue()
                 GameManager.newGameVersus(
                     game,

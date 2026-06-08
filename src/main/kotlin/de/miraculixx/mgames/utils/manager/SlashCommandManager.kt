@@ -2,7 +2,7 @@ package de.miraculixx.mgames.utils.manager
 
 import de.miraculixx.mgames.Main
 import de.miraculixx.mgames.modules.games.connectFour.C4Command
-import de.miraculixx.mgames.modules.games.quickMath.QuickMathCommand
+import de.miraculixx.mgames.modules.games.quickMath.QuickMath
 import de.miraculixx.mgames.modules.games.tictactoe.TTTCommand
 import de.miraculixx.mgames.modules.trivia.TriviaCategory
 import de.miraculixx.mgames.modules.trivia.TriviaCommand
@@ -25,7 +25,7 @@ object SlashCommandManager {
     private val commands = mapOf(
         "tictactoe" to TTTCommand(),
         "connect-4" to C4Command(),
-        "quick-math" to QuickMathCommand,
+        "quick-math" to QuickMath,
         "setup" to SetupCommand(),
         "admin" to AdminCommand(),
         "coins" to CoinsCommand(),

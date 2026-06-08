@@ -5,6 +5,9 @@ import de.miraculixx.mgames.modules.games.utils.enums.GameMode
 import de.miraculixx.mgames.utils.cachedDailyDate
 import de.miraculixx.mgames.utils.cachedDailySeed
 import de.miraculixx.mgames.utils.api.SQL
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -15,23 +18,27 @@ import kotlin.time.ExperimentalTime
 
 @OptIn(ExperimentalTime::class)
 object GoalManager {
-    suspend fun registerGameResult(
+    fun registerGameResult(
         game: Game,
         mode: GameMode,
         winnerSnowflake: Long?,
         loserSnowflake: Long?,
         guildSnowflake: Long,
         difficultyMultiplier: Int = 1
-    ) {
-        registerGameHistory(game, listOfNotNull(winnerSnowflake, loserSnowflake))
-        val difficulty = if (mode == GameMode.BOT) difficultyMultiplier.coerceIn(1, 3) else 0
-        winnerSnowflake?.let {
-            SQL.addGameStats(it, game, mode, difficulty, won = true)
-            SQL.addCoins(it, guildSnowflake, game.coinValue * difficultyMultiplier.coerceIn(1, 3))
+    ): Int {
+        val coins = game.coinValue * difficultyMultiplier.coerceIn(1, 3)
+        CoroutineScope(Dispatchers.Default).launch {
+            registerGameHistory(game, listOfNotNull(winnerSnowflake, loserSnowflake))
+            val difficulty = if (mode == GameMode.BOT) difficultyMultiplier.coerceIn(1, 3) else 0
+            winnerSnowflake?.let {
+                SQL.addGameStats(it, game, mode, difficulty, won = true)
+                SQL.addCoins(it, guildSnowflake, coins)
+            }
+            loserSnowflake?.let {
+                SQL.addGameStats(it, game, mode, difficulty, won = false)
+            }
         }
-        loserSnowflake?.let {
-            SQL.addGameStats(it, game, mode, difficulty, won = false)
-        }
+        return coins
     }
 
     suspend fun registerGameHistory(game: Game, users: Collection<Long>) {
@@ -48,6 +55,10 @@ object GoalManager {
         val previousDate = date.minus(1, DateTimeUnit.DAY)
         val reward = game.coinValue * difficultyMultiplier.coerceIn(1, 3) * 10
         return SQL.completeDailyPlay(userSnowflake, guildSnowflake, game.name, date.toString(), previousDate.toString(), reward)
+    }
+
+    suspend fun hasCompletedDaily(game: Game, userSnowflake: Long, guildSnowflake: Long): Boolean {
+        return SQL.hasCompletedDailyPlay(userSnowflake, guildSnowflake, game.name, currentDailyDate().toString())
     }
 
     suspend fun getDailySeed(): Long {

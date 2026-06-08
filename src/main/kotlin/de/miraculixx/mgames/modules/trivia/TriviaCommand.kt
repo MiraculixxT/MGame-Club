@@ -1,6 +1,7 @@
 package de.miraculixx.mgames.modules.trivia
 
 import de.miraculixx.mgames.modules.games.GoalManager
+import de.miraculixx.mgames.modules.games.utils.enums.Game
 import de.miraculixx.mgames.utils.api.callCustomAPI
 import de.miraculixx.mgames.utils.api.SQL
 import de.miraculixx.mgames.utils.entities.SlashCommandEvent
@@ -20,6 +21,12 @@ class TriviaCommand : SlashCommandEvent {
         val subcommand = it.subcommandName
         val user = it.user
         val userID = user.id
+        val guildID = it.guild?.idLong ?: return
+
+        if (subcommand == "daily" && GoalManager.hasCompletedDaily(Game.TRIVIA, user.idLong, guildID)) {
+            it.reply("```diff\n- Daily Trivia wurde heute bereits abgeschlossen.```").setEphemeral(true).queue()
+            return
+        }
 
         it.deferReply().queue()
         val gen = if (subcommand == "daily") {

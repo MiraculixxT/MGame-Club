@@ -231,24 +231,29 @@ class C4Game(
                     "**\uD83C\uDFC1 || ${msg("gameEnd", guildID)}**\n" +
                     when (winner ?: FieldsTwoPlayer.EMPTY) {
                         FieldsTwoPlayer.EMPTY -> {
-                            GoalManager.registerGameHistory(
-                                Game.CONNECT_4,
-                                if (bot != null) listOf(member1.idLong) else listOf(member1.idLong, member2.idLong)
-                            )
-                            if (daily) GoalManager.registerDailyCompletion(Game.CONNECT_4, member1.idLong, guildID, difficultyMultiplier)
+                            if (!daily) {
+                                GoalManager.registerGameHistory(
+                                    Game.CONNECT_4,
+                                    if (bot != null) listOf(member1.idLong) else listOf(member1.idLong, member2.idLong)
+                                )
+                            }
                             msg("draw", guildID)
                         }
 
                         FieldsTwoPlayer.PLAYER_1 -> {
-                            GoalManager.registerGameResult(
-                                Game.CONNECT_4,
-                                if (bot != null) GameMode.BOT else GameMode.USER,
-                                winnerSnowflake = member1.idLong,
-                                loserSnowflake = if (bot == null) member2.idLong else null,
-                                guildSnowflake = guildID,
-                                difficultyMultiplier = difficultyMultiplier
-                            )
-                            if (daily) GoalManager.registerDailyCompletion(Game.CONNECT_4, member1.idLong, guildID, difficultyMultiplier)
+                            val dailyResult = if (daily) {
+                                GoalManager.registerDailyCompletion(Game.CONNECT_4, member1.idLong, guildID, difficultyMultiplier)
+                            } else null
+                            if (!daily || dailyResult?.completed == true) {
+                                GoalManager.registerGameResult(
+                                    Game.CONNECT_4,
+                                    if (bot != null) GameMode.BOT else GameMode.USER,
+                                    winnerSnowflake = member1.idLong,
+                                    loserSnowflake = if (bot == null) member2.idLong else null,
+                                    guildSnowflake = guildID,
+                                    difficultyMultiplier = difficultyMultiplier
+                                )
+                            }
                             "$member1Emote ${member1.asMention} ${msg("win", guildID)}"
                         }
 
@@ -263,15 +268,16 @@ class C4Game(
                                     difficultyMultiplier = difficultyMultiplier
                                 )
                             } else {
-                                GoalManager.registerGameResult(
-                                    Game.CONNECT_4,
-                                    GameMode.BOT,
-                                    winnerSnowflake = null,
-                                    loserSnowflake = member1.idLong,
-                                    guildSnowflake = guildID,
-                                    difficultyMultiplier = difficultyMultiplier
-                                )
-                                if (daily) GoalManager.registerDailyCompletion(Game.CONNECT_4, member1.idLong, guildID, difficultyMultiplier)
+                                if (!daily) {
+                                    GoalManager.registerGameResult(
+                                        Game.CONNECT_4,
+                                        GameMode.BOT,
+                                        winnerSnowflake = null,
+                                        loserSnowflake = member1.idLong,
+                                        guildSnowflake = guildID,
+                                        difficultyMultiplier = difficultyMultiplier
+                                    )
+                                }
                             }
                             "$member2Emote ${member2.asMention} ${msg("win", guildID)}"
                         }
