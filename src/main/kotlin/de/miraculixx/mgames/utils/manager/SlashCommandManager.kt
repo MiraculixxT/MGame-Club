@@ -3,6 +3,7 @@ package de.miraculixx.mgames.utils.manager
 import de.miraculixx.mgames.Main
 import de.miraculixx.mgames.modules.games.connectFour.C4Command
 import de.miraculixx.mgames.modules.games.quickMath.QuickMath
+import de.miraculixx.mgames.modules.games.quickMath.QuickMath.MathDifficulty
 import de.miraculixx.mgames.modules.games.tictactoe.TTTCommand
 import de.miraculixx.mgames.modules.trivia.TriviaCategory
 import de.miraculixx.mgames.modules.trivia.TriviaCommand
@@ -55,32 +56,39 @@ object SlashCommandManager {
                 }
                 subcommand("daily", "Answer today's daily trivia question")
             },
+
             Command("tictactoe", "Play Tic-Tac-Toe against others") {
                 subcommand("user", "Play Tic-Tac-Toe against an other User") {
                     addOption(OptionType.USER, "request", "Send a game request to your selected User")
                 }
                 subcommand("bot", "Play Tic-Tac-Toe against our AI") {
-                    addOption(OptionType.STRING, "difficulty", "How good should the AI play?", true, true)
+                    option<String>("difficulty", "Choose a difficulty") {
+                        MathDifficulty.entries.forEach { choice(it.title, it.name) }
+                    }
                 }
-                subcommand("daily", "Play today's seeded Tic-Tac-Toe challenge") {
-                    addOption(OptionType.STRING, "difficulty", "How good should the AI play?", true, true)
-                }
+                subcommand("daily", "Play today's seeded medium Tic-Tac-Toe challenge")
             },
+
             Command("connect-4", "Play Connect-4 against others") {
                 subcommand("user", "Play Connect 4 against an other User") {
                     addOption(OptionType.USER, "request", "Send a game request to your selected User")
                 }
                 subcommand("bot", "Play Connect 4 against our AI") {
-                    addOption(OptionType.STRING, "difficulty", "How good should the AI play?", true, true)
+                    option<String>("difficulty", "Choose a difficulty") {
+                        MathDifficulty.entries.forEach { choice(it.title, it.name) }
+                    }
                 }
-                subcommand("daily", "Play today's seeded Connect 4 challenge") {
-                    addOption(OptionType.STRING, "difficulty", "How good should the AI play?", true, true)
-                }
+                subcommand("daily", "Play today's seeded medium Connect 4 challenge")
                 subcommand("skin", "Choose a Skin for your Chip")
             },
+
             Command("quick-math", "Solve a quick math challenge") {
-                subcommand("play", "Solve a quick math challenge")
-                subcommand("daily", "Solve today's seeded quick math challenge")
+                subcommand("play", "Solve a quick math challenge") {
+                    option<String>("difficulty", "Choose a difficulty") {
+                        MathDifficulty.entries.forEach { choice(it.title, it.name) }
+                    }
+                }
+                subcommand("daily", "Solve today's seeded medium quick math challenge")
             },
 
             Command("coins", "Inspect your personal stats") {

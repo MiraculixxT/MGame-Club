@@ -59,14 +59,18 @@ class TriviaButton : ButtonEvent {
         val components = message.components.first().asActionRow().buttons
         val embed = message.embeds.first()
         val replay = ActionRow.of(Button.primary("TRIVIA:$userID:REPLAY", "Replay").withEmoji(Emoji.fromUnicode("\uD83D\uDD01")))
-        val dailyResult = if (success && daily) GoalManager.registerDailyCompletion(Game.TRIVIA, it.user.idLong, guildID, 1) else null
+        val dailyDifficultyMultiplier = 2
+        val dailyResult = if (success && daily) {
+            GoalManager.registerDailyCompletion(Game.TRIVIA, it.user.idLong, guildID, dailyDifficultyMultiplier)
+        } else null
         if (success && (!daily || dailyResult?.completed == true)) {
             GoalManager.registerGameResult(
                 Game.TRIVIA,
                 GameMode.SOLO,
                 winnerSnowflake = it.user.idLong,
                 loserSnowflake = null,
-                guildSnowflake = guildID
+                guildSnowflake = guildID,
+                difficultyMultiplier = if (daily) dailyDifficultyMultiplier else 1
             )
         } else if (!daily && !success) {
             GoalManager.registerGameResult(

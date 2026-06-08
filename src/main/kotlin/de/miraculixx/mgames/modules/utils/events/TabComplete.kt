@@ -7,10 +7,6 @@ import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInterac
 object TabComplete {
     fun startListen(jda: JDA) = jda.listener<CommandAutoCompleteInteractionEvent> {
         when ("${it.name}:${it.subcommandName}") {
-            "connect-4:bot" -> it.replyChoiceStrings("Hard", "Medium", "Easy").queue()
-            "connect-4:daily" -> it.replyChoiceStrings("Hard", "Medium", "Easy").queue()
-            "tictactoe:bot" -> it.replyChoiceStrings("Hard", "Medium", "Easy").queue()
-            "tictactoe:daily" -> it.replyChoiceStrings("Hard", "Medium", "Easy").queue()
             "setup:language" -> it.replyChoiceStrings("German", "English").queue()
         }
     }

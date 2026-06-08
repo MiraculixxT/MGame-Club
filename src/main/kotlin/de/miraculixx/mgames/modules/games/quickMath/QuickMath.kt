@@ -36,28 +36,30 @@ object QuickMath : SlashCommandEvent, ModalEvent, ButtonEvent {
     override suspend fun trigger(it: SlashCommandInteractionEvent) {
         val daily = it.subcommandName == "daily"
         val guildId = it.guild?.idLong
+        val difficulty = if (daily) MathDifficulty.MEDIUM else it.getOption("difficulty")?.asString.toMathDifficulty()
         if (daily && guildId != null && GoalManager.hasCompletedDaily(Game.QUICK_MATH, it.user.idLong, guildId)) {
             it.reply("```diff\n- Daily Quick Math wurde heute bereits abgeschlossen.```").setEphemeral(true).queue()
             return
         }
-        it.openChallenge(it.user.idLong, daily)
+        it.openChallenge(it.user.idLong, daily, difficulty)
     }
 
     override suspend fun trigger(it: ButtonInteractionEvent) {
-        it.openChallenge(it.user.idLong, daily = false)
+        it.openChallenge(it.user.idLong, daily = false, difficulty = MathDifficulty.EASY)
     }
 
-    private suspend fun IModalCallback.openChallenge(userId: Long, daily: Boolean) {
+    private suspend fun IModalCallback.openChallenge(userId: Long, daily: Boolean, difficulty: MathDifficulty) {
         val startedAt = System.currentTimeMillis()
-        val modalId = "$MODAL_PREFIX:$startedAt:$userId:${Random.nextInt(100_000, 1_000_000)}:$daily"
-        val challenge = if (daily) createChallenge(Random(GoalManager.getDailySeed())) else createChallenge(Random.Default)
+        val modalId = "$MODAL_PREFIX:$startedAt:$userId:${Random.nextInt(100_000, 1_000_000)}:$daily:${difficulty.name}"
+        val challenge = if (daily) createChallenge(Random(GoalManager.getDailySeed() + difficulty.seedOffset), difficulty)
+        else createChallenge(Random.Default, difficulty)
         challenges[modalId] = challenge
 
-        replyModal(Modal(modalId, "Quick Math") {
+        replyModal(Modal(modalId, "Quick Math - ${difficulty.title}") {
             label(challenge.hiddenQuestion) {
                 child = TextInput(ANSWER_INPUT_ID, TextInputStyle.SHORT, requiredLength = 1..20, placeholder = "Antwort als ganze Zahl")
             }
-            components += TextDisplay("__Spickzettel__\n- % * vor + - (Punkt vor Strich)\n- % ist Rest einer Division (modulo)\n- Nutze das Textfeld zum Zwischenspeichern")
+            components += TextDisplay(difficulty.helpText)
         }).queue()
     }
 
@@ -66,6 +68,7 @@ object QuickMath : SlashCommandEvent, ModalEvent, ButtonEvent {
         val startedAt = parts.getOrNull(1)?.toLongOrNull()
         val targetUserId = parts.getOrNull(2)?.toLongOrNull()
         val daily = parts.getOrNull(4)?.toBooleanStrictOrNull() ?: false
+        val difficulty = parts.getOrNull(5).toMathDifficulty()
         val answerRaw = it.getValue(ANSWER_INPUT_ID)?.asString?.trim().orEmpty()
         val answer = answerRaw.toLongOrNull()
 
@@ -95,7 +98,7 @@ object QuickMath : SlashCommandEvent, ModalEvent, ButtonEvent {
         val elapsed = "%.2f".format(elapsedMs / 1000.0)
         val success = answer == challenge.result
         val dailyResult = if (success && daily) {
-            GoalManager.registerDailyCompletion(Game.QUICK_MATH, targetUserId, guildId, 1)
+            GoalManager.registerDailyCompletion(Game.QUICK_MATH, targetUserId, guildId, difficulty.multiplier)
         } else null
         val coins = if (success && (!daily || dailyResult?.completed == true)) {
             GoalManager.registerGameResult(
@@ -103,7 +106,8 @@ object QuickMath : SlashCommandEvent, ModalEvent, ButtonEvent {
                 GameMode.SOLO,
                 winnerSnowflake = targetUserId,
                 loserSnowflake = null,
-                guildSnowflake = guildId
+                guildSnowflake = guildId,
+                difficultyMultiplier = difficulty.multiplier
             ) + (dailyResult?.reward ?: 0)
         } else if (!daily && !success) {
             GoalManager.registerGameResult(
@@ -111,7 +115,8 @@ object QuickMath : SlashCommandEvent, ModalEvent, ButtonEvent {
                 GameMode.SOLO,
                 winnerSnowflake = null,
                 loserSnowflake = targetUserId,
-                guildSnowflake = guildId
+                guildSnowflake = guildId,
+                difficultyMultiplier = difficulty.multiplier
             )
             0
         } else 0
@@ -133,8 +138,8 @@ object QuickMath : SlashCommandEvent, ModalEvent, ButtonEvent {
     ): List<MessageTopLevelComponent> {
         val result = challenge.result.toString()
         val answerLine = if (streak != null) {
-            if (success) "- Richtig Beantwortet!"
-            else "- Falsch Beantwortet :/"
+            if (success) "- Daily Challenge Geschafft!"
+            else "- Daily Challenge Falsch :/"
         } else {
             if (success) "- Richtig  >> `$result`\n- Zeit                           >> `${elapsed}s`"
             else "- Falsch  >> `${submitted.ifBlank { "<leer>" }}` (`$result`)"
@@ -148,52 +153,104 @@ object QuickMath : SlashCommandEvent, ModalEvent, ButtonEvent {
                 ),
                 Separator.createDivider(Separator.Spacing.SMALL),
                 TextDisplay.of(
-                    if (streak == null) "- Challenge >> `${challenge.cleanQuestion}`" else {"- Daily Challenge"} +
+                    if (streak == null) "- Challenge >> `${challenge.cleanQuestion}`" else {""} +
+                        if (streak == null) "\n- Difficulty >> `${challenge.difficulty.title}`" else {""} +
                         "\n$answerLine" +
-                        if (streak != null && streak > 0) "\n- Streak >> `${streak}`" else {""} +
+                        if (streak != null && success) "\n- Streak >> `${streak}`" else {""} +
                         "\n-# Von <@$user>${coinGrantFooter(reward)}"
                 )
             ).withAccentColor(if (success) 0x2ECC71 else 0xE74C3C)
         )
     }
 
-    private fun createChallenge(random: Random): MathChallenge {
-        repeat(50) {
-            val expression = randomExpression(random, depth = random.nextInt(2, 4), topLevel = true)
+    private fun createChallenge(random: Random, difficulty: MathDifficulty): MathChallenge {
+        repeat(200) {
+            val expression = randomExpression(random, difficulty, difficulty.operationCount, topLevel = true)
             val question = expression.render()
             val hiddenQuestion = question.hideSpaces(random)
             if (question.length <= 34 && hiddenQuestion.length <= 45 && abs(expression.value) <= 100_000) {
-                return MathChallenge(question, hiddenQuestion, expression.value)
+                return MathChallenge(question, hiddenQuestion, expression.value, difficulty)
             }
         }
 
-        val fallback = Binary(Const(38), Operator.ADD, Binary(Const(-8), Operator.MULTIPLY, Const(3), grouped = false), grouped = false)
+        val fallback = fallbackExpression(difficulty)
         val question = fallback.render()
-        return MathChallenge(question, question.hideSpaces(random), fallback.value)
+        return MathChallenge(question, question.hideSpaces(random), fallback.value, difficulty)
     }
 
-    private fun randomExpression(random: Random, depth: Int, topLevel: Boolean = false): Expr {
-        if (depth <= 0) return Const(random.nextInt(-12, 51).let { if (it == 0) 1 else it }.toLong())
+    private fun randomExpression(random: Random, difficulty: MathDifficulty, operations: Int, topLevel: Boolean = false): Expr {
+        if (operations <= 0) return Const(difficulty.randomNumber(random).toLong())
 
-        val op = randomOperator(random)
+        val op = randomOperator(random, difficulty)
         val grouped = !topLevel && random.nextBoolean()
-        val left = randomExpression(random, depth - 1)
-        var right = randomExpression(random, depth - 1)
+        val leftOperations = random.nextInt(0, operations)
+        val rightOperations = operations - 1 - leftOperations
+        val left = randomExpression(random, difficulty, leftOperations)
+        var right = randomExpression(random, difficulty, rightOperations)
 
         if (op == Operator.MODULO) {
-            while (right.value == 0L) right = randomExpression(random, depth - 1)
+            while (right.value == 0L) right = randomExpression(random, difficulty, rightOperations)
         }
 
         return Binary(left, op, right, grouped)
     }
 
-    private fun randomOperator(random: Random): Operator {
-        return when (random.nextInt(100)) {
-            in 0..6 -> Operator.MODULO
-            in 7..29 -> Operator.MULTIPLY
-            in 30..61 -> Operator.SUBTRACT
-            else -> Operator.ADD
+    private fun randomOperator(random: Random, difficulty: MathDifficulty): Operator {
+        val operators = if (difficulty.allowModulo) Operator.entries else Operator.entries.filter { it != Operator.MODULO }
+        return operators[random.nextInt(operators.size)]
+    }
+
+    private fun String?.toMathDifficulty(): MathDifficulty {
+        return MathDifficulty.entries.firstOrNull { difficulty ->
+            equals(difficulty.name, ignoreCase = true) || equals(difficulty.title, ignoreCase = true)
+        } ?: MathDifficulty.EASY
+    }
+
+    private fun fallbackExpression(difficulty: MathDifficulty): Expr {
+        return when (difficulty) {
+            MathDifficulty.EASY -> Binary(Const(12), Operator.ADD, Binary(Const(3), Operator.MULTIPLY, Const(2), grouped = false), grouped = false)
+            MathDifficulty.MEDIUM -> Binary(
+                Binary(Const(17), Operator.SUBTRACT, Const(-12), grouped = true),
+                Operator.MULTIPLY,
+                Binary(Const(8), Operator.ADD, Const(19), grouped = false),
+                grouped = false
+            )
+            MathDifficulty.HARD -> Binary(
+                Binary(Const(24), Operator.MODULO, Const(7), grouped = true),
+                Operator.MULTIPLY,
+                Binary(Const(-11), Operator.ADD, Const(5), grouped = false),
+                grouped = false
+            )
         }
+    }
+
+    enum class MathDifficulty(
+        val title: String,
+        val multiplier: Int,
+        val operationCount: Int,
+        private val minNumber: Int,
+        private val maxNumber: Int,
+        val allowModulo: Boolean,
+        val seedOffset: Long
+    ) {
+        EASY("Easy", 1, 2, 1, 15, false, 10_000L),
+        MEDIUM("Medium", 2, 3, -20, 20, false, 20_000L),
+        HARD("Hard", 3, 3, -30, 30, true, 30_000L);
+
+        val helpText: String
+            get() = buildString {
+                append("__Spickzettel__\n")
+                append("- *")
+                if (allowModulo) append(" %")
+                append(" vor + - (Punkt vor Strich)\n")
+                if (allowModulo) append("- % ist Rest einer Division (modulo)\n")
+                append("- Nutze das Textfeld zum Zwischenspeichern")
+            }
+
+        fun randomNumber(random: Random): Int {
+            return random.nextInt(minNumber, maxNumber + 1)
+        }
+
     }
 
     private fun String.hideSpaces(random: Random): String {
@@ -205,7 +262,8 @@ object QuickMath : SlashCommandEvent, ModalEvent, ButtonEvent {
     private data class MathChallenge(
         val cleanQuestion: String,
         val hiddenQuestion: String,
-        val result: Long
+        val result: Long,
+        val difficulty: MathDifficulty
     )
 
     private sealed interface Expr {

@@ -70,7 +70,7 @@ suspend fun ensureDailyTriviaQuestion(): TriviaCommand.DailyTrivia {
     val existing = SQL.getDailyTrivia(date)
     if (existing != null) return json.decodeFromString<TriviaCommand.DailyTrivia>(existing)
 
-    val output = requestTrivia(TriviaCategory.RANDOM, TriviaDifficulty.RANDOM)
+    val output = requestTrivia(TriviaCategory.RANDOM, TriviaDifficulty.MEDIUM)
     val question = output.results.first()
     val answers = if (question.type == "multiple") 4 else 2
     val daily = TriviaCommand.DailyTrivia(output, (1..answers).toList().shuffled())
@@ -80,7 +80,7 @@ suspend fun ensureDailyTriviaQuestion(): TriviaCommand.DailyTrivia {
 
 suspend fun generateDailyQuestion(userID: String): Pair<MessageEmbed, ActionRow> {
     val daily = ensureDailyTriviaQuestion()
-    return buildQuestion(daily.output, TriviaCategory.RANDOM, TriviaDifficulty.RANDOM, userID, daily = true, answerOrder = daily.answerOrder)
+    return buildQuestion(daily.output, TriviaCategory.RANDOM, TriviaDifficulty.MEDIUM, userID, daily = true, answerOrder = daily.answerOrder)
 }
 
 suspend fun generateQuestion(category: TriviaCategory, difficulty: TriviaDifficulty, userID: String): Pair<MessageEmbed, ActionRow> {
