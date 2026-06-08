@@ -7,11 +7,10 @@ import de.miraculixx.mgames.utils.serializer.json
 import dev.minn.jda.ktx.interactions.components.button
 import dev.minn.jda.ktx.messages.Embed
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.decodeFromString
+import net.dv8tion.jda.api.components.actionrow.ActionRow
 import net.dv8tion.jda.api.entities.MessageEmbed
 import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
-import net.dv8tion.jda.api.interactions.components.ActionRow
 import org.apache.commons.text.StringEscapeUtils
 
 class TriviaCommand : SlashCommandEvent {

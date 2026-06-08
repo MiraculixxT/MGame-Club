@@ -12,6 +12,7 @@ import de.miraculixx.mgames.modules.games.utils.enums.Game
 import de.miraculixx.mgames.modules.games.utils.enums.GameMode
 import de.miraculixx.mgames.utils.api.SQL
 import de.miraculixx.mgames.utils.log
+import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.messages.Embed
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -22,8 +23,8 @@ import net.dv8tion.jda.api.entities.*
 import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel
 import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.events.interaction.component.GenericComponentInteractionCreateEvent
-import net.dv8tion.jda.api.interactions.components.ActionRow
-import net.dv8tion.jda.api.interactions.components.buttons.Button
+import net.dv8tion.jda.api.components.actionrow.ActionRow
+import net.dv8tion.jda.api.components.buttons.Button
 import java.util.*
 import kotlin.random.Random
 import kotlin.time.Duration.Companion.seconds
@@ -59,7 +60,7 @@ class C4Game(
         (1..7).map { FieldsTwoPlayer.EMPTY }.toTypedArray()
     }
 
-    private suspend fun calcEmbed(): MessageEmbed {
+    private fun calcEmbed(): MessageEmbed {
         return Embed {
             title = "<:gamespot:988131155159183420> || CONNECT 4"
             description = "$member1Emote - Player 1 ${member1.asMention}\n" +
@@ -185,7 +186,7 @@ class C4Game(
             event?.reply(msgDiff(msg("notYourMove", guildID)))?.setEphemeral(true)?.queue()
             return
         }
-        event?.editMessage(message.contentRaw + " ")?.complete()
+        event?.editMessage(message.contentRaw + " ")?.await()
         sendUpdate(row.digitToInt(), column.digitToInt(), interactor)
     }
 
@@ -276,12 +277,12 @@ class C4Game(
                     .setEmbeds(EmbedBuilder().setDescription(msg("selfDelete", guildID)).build()).queue()
             else thread.sendMessage(msg)
                 .setEmbeds(EmbedBuilder().setDescription(msg("selfDelete", guildID)).build())
-                .setActionRow(replayButton).queue()
+                .setComponents(ActionRow.of(replayButton)).queue()
             GameManager.removeGame(guildID, Game.CONNECT_4, uuid)
         }
         val selector = calcButtons()
-        message.editMessageEmbeds(calcEmbed()).setComponents(selector).complete()
-        threadMessage.editMessageComponents(selector).complete()
+        message.editMessageEmbeds(calcEmbed()).setComponents(selector).await()
+        threadMessage.editMessageComponents(selector).await()
 
         if (winner != null) {
             delay(30.seconds)

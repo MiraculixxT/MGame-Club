@@ -17,7 +17,7 @@ object ButtonManager {
     )
 
     fun startListen(jda: JDA) = jda.listener<ButtonInteractionEvent> {
-        val id = it.button.id ?: return@listener
+        val id = it.componentId
         val commandClass = when {
             id.startsWith("GAME_TTT_") -> buttons["GAME_TTT"]
             id.startsWith("GAME_4G_") -> buttons["GAME_4G"]

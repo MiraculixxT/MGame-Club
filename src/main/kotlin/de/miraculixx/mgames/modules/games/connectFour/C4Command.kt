@@ -11,8 +11,8 @@ import dev.minn.jda.ktx.interactions.components.StringSelectMenu
 import dev.minn.jda.ktx.messages.Embed
 import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
-import net.dv8tion.jda.api.interactions.components.ActionRow
-import net.dv8tion.jda.api.interactions.components.selections.SelectOption
+import net.dv8tion.jda.api.components.actionrow.ActionRow
+import net.dv8tion.jda.api.components.selections.SelectOption
 
 class C4Command : SlashCommandEvent {
     override suspend fun trigger(it: SlashCommandInteractionEvent) {

@@ -9,6 +9,7 @@ import de.miraculixx.mgames.modules.games.utils.SimpleGame
 import de.miraculixx.mgames.modules.games.utils.enums.Game
 import de.miraculixx.mgames.modules.games.utils.enums.GameMode
 import de.miraculixx.mgames.utils.log
+import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.events.getDefaultScope
 import dev.minn.jda.ktx.messages.Embed
 import kotlinx.coroutines.delay
@@ -18,8 +19,8 @@ import net.dv8tion.jda.api.entities.*
 import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel
 import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.events.interaction.component.GenericComponentInteractionCreateEvent
-import net.dv8tion.jda.api.interactions.components.ActionRow
-import net.dv8tion.jda.api.interactions.components.buttons.Button
+import net.dv8tion.jda.api.components.actionrow.ActionRow
+import net.dv8tion.jda.api.components.buttons.Button
 import java.util.*
 import kotlin.random.Random
 import kotlin.time.Duration.Companion.seconds
@@ -76,7 +77,7 @@ class TTTGame(
         return rows
     }
 
-    private suspend fun calcEmbed(): MessageEmbed {
+    private fun calcEmbed(): MessageEmbed {
         return Embed {
             title = "<:gamespot:988131155159183420> || TIC TAC TOE"
             description = "<:xx:988156472020066324> - Player Red ${member1.asMention}\n" +
@@ -164,7 +165,7 @@ class TTTGame(
             .setEmbeds(EmbedBuilder().setDescription(msg("selfDelete", guildID)).build()).queue()
         else thread.sendMessage(msg)
             .setEmbeds(EmbedBuilder().setDescription(msg("selfDelete", guildID)).build())
-            .setActionRow(replayButton).queue()
+            .setComponents(ActionRow.of(replayButton)).queue()
 
         GameManager.removeGame(guildID, Game.TIC_TAC_TOE, uuid)
     }
@@ -237,8 +238,8 @@ class TTTGame(
         }
         checkWin()
         val buttons = calcButtons()
-        message.editMessageEmbeds(calcEmbed()).setComponents(buttons).complete()
-        threadMessage.editMessageComponents(buttons).complete()
+        message.editMessageEmbeds(calcEmbed()).setComponents(buttons).await()
+        threadMessage.editMessageComponents(buttons).await()
         event?.editMessage(event.message.contentRaw)?.queue()
         if (winner != null) {
             delay(30.seconds)

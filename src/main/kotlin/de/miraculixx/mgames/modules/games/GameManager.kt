@@ -12,8 +12,9 @@ import dev.minn.jda.ktx.coroutines.await
 import net.dv8tion.jda.api.entities.Guild
 import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.emoji.Emoji
+import net.dv8tion.jda.api.components.actionrow.ActionRow
 import net.dv8tion.jda.api.interactions.InteractionHook
-import net.dv8tion.jda.api.interactions.components.buttons.Button
+import net.dv8tion.jda.api.components.buttons.Button
 import java.util.*
 import kotlin.collections.HashMap
 import kotlin.collections.hashMapOf
@@ -23,23 +24,27 @@ object GameManager {
     // HashMap<GuildID, Map<GameType, HashMap<GameID, GameInstance>>>
     private val guilds = HashMap<Long, MutableMap<Game, HashMap<UUID, SimpleGame>>>()
 
-    suspend fun searchGame(hook: InteractionHook, member: Member, gameTag: String, gameName: String) {
+    fun searchGame(hook: InteractionHook, member: Member, gameTag: String, gameName: String) {
         hook.editOriginal(
             "\uD83C\uDFAE **|| ${gameName.uppercase()}**\n" +
                     "${member.asMention} ${msg("commandGameQueue", member.guild.idLong).replace("%GAME%", gameName)}"
-        ).setActionRow(
-            Button.success("GAME_${gameTag}_ACCEPT_${member.id}", "Accept").withEmoji(Emoji.fromUnicode("✔️")),
-            Button.danger("GAME_${gameTag}_CANCEL_${member.id}", "Cancel").withEmoji(Emoji.fromUnicode("✖️"))
+        ).setComponents(
+            ActionRow.of(
+                Button.success("GAME_${gameTag}_ACCEPT_${member.id}", "Accept").withEmoji(Emoji.fromUnicode("✔️")),
+                Button.danger("GAME_${gameTag}_CANCEL_${member.id}", "Cancel").withEmoji(Emoji.fromUnicode("✖️"))
+            )
         ).queue()
     }
 
-    suspend fun requestGame(hook: InteractionHook, member: Member, opponent: Member, gameTag: String, gameName: String) {
+    fun requestGame(hook: InteractionHook, member: Member, opponent: Member, gameTag: String, gameName: String) {
         hook.editOriginal(
             "\uD83C\uDFAE **|| ${gameName.uppercase()}**\n" +
                     "${opponent.asMention} - ${msg("commandGameRequest", member.guild.idLong).replace("%GAME%", gameName).replace("%MEMBER%", member.asMention)}"
-        ).setActionRow(
-            Button.success("GAME_${gameTag}_YES_${member.id}_${opponent.id}", "Accept").withEmoji(Emoji.fromUnicode("✔️")),
-            Button.danger("GAME_${gameTag}_NO_${opponent.id}", "Deny").withEmoji(Emoji.fromUnicode("✖️"))
+        ).setComponents(
+            ActionRow.of(
+                Button.success("GAME_${gameTag}_YES_${member.id}_${opponent.id}", "Accept").withEmoji(Emoji.fromUnicode("✔️")),
+                Button.danger("GAME_${gameTag}_NO_${opponent.id}", "Deny").withEmoji(Emoji.fromUnicode("✖️"))
+            )
         ).queue()
     }
 
@@ -81,7 +86,7 @@ object GameManager {
         return mGuild.getOrPut(game) { hashMapOf() }
     }
 
-    suspend fun cleanupOldInstances(maxAgeMillis: Long) {
+    fun cleanupOldInstances(maxAgeMillis: Long) {
         val now = System.currentTimeMillis()
         "---=---> GAME CLEANUP <---=---".log(Color.YELLOW)
         guilds.forEach { (guild, data) ->

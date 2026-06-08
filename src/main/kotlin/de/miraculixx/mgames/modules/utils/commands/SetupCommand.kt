@@ -4,13 +4,15 @@ import de.miraculixx.mgames.modules.games.UpdaterGame
 import de.miraculixx.mgames.utils.api.SQL
 import de.miraculixx.mgames.utils.entities.SlashCommandEvent
 import de.miraculixx.mgames.utils.notify
+import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.messages.Embed
 import net.dv8tion.jda.api.Permission
+import net.dv8tion.jda.api.components.actionrow.ActionRow
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
 import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import net.dv8tion.jda.api.exceptions.InsufficientPermissionException
-import net.dv8tion.jda.api.interactions.components.buttons.Button
+import net.dv8tion.jda.api.components.buttons.Button
 
 class SetupCommand : SlashCommandEvent {
     override suspend fun trigger(it: SlashCommandInteractionEvent) {
@@ -20,16 +22,6 @@ class SetupCommand : SlashCommandEvent {
                 val guild = it.guild ?: return
                 it.deferReply().queue()
                 val hook = it.hook
-                val botPerms = listOf(
-                    Permission.VIEW_CHANNEL,
-                    Permission.CREATE_PUBLIC_THREADS,
-                    Permission.CREATE_PRIVATE_THREADS,
-                    Permission.MESSAGE_SEND,
-                    Permission.MESSAGE_SEND_IN_THREADS,
-                    Permission.MANAGE_WEBHOOKS,
-                    Permission.MANAGE_THREADS,
-                    Permission.MESSAGE_MANAGE
-                )
 
                 if (it.getOption("stats-channel") != null) {
                     val g = SQL.getGuild(guild.idLong)
@@ -40,14 +32,12 @@ class SetupCommand : SlashCommandEvent {
                             return
                         }
                         try {
-                            if (target.getHistoryFromBeginning(10).complete().size() != 0) {
+                            if (target.getHistoryFromBeginning(10).await().size() != 0) {
                                 hook.editOriginal("```diff\n- This Channel has to much traffic! Please choose an empty Channel to setup```").queue()
                                 return
                             }
 
-                            //target.upsertPermissionOverride(it.jda.selfUser)
                             UpdaterGame.updateLeaderboardGuild(guild, target)
-                            //target?.upsertPermissionOverride(it.jda.selfUser)
                             hook.editOriginal("**>> ERFOLG**\n${target.asMention} ist nun der Game Stats Channel!").queue()
 
                             SQL.update("UPDATE guildData SET Stats_Channel=${target.id} WHERE Discord_ID=${guild.id}")
@@ -56,15 +46,14 @@ class SetupCommand : SlashCommandEvent {
                         }
                     } else {
                         hook.editOriginal("```diff\n- Your Guild does not own Premium!\n- Activate it in MCreate (Bots Master-Guild) or get it on our Webshop!```")
-                            .setActionRow(
-                                Button.link("https://discord.gg/VEcR8RbnSH", "MCreate").withEmoji(Emoji.fromFormatted("<:mutils:975780449903341579>")),
-                                Button.link("https://miraculixx.de/mcreate/shop", "Webshop").withEmoji(Emoji.fromUnicode("\uD83D\uDED2"))
+                            .setComponents(
+                                ActionRow.of(
+                                    Button.link("https://discord.gg/VEcR8RbnSH", "MCreate").withEmoji(Emoji.fromFormatted("<:mutils:975780449903341579>")),
+                                    Button.link("https://miraculixx.de/mcreate/shop", "Webshop").withEmoji(Emoji.fromUnicode("\uD83D\uDED2"))
+                                )
                             )
                             .queue()
                         return
-                    }
-                    if (it.getOption("game-channel") != null) {
-
                     }
                 }
             }

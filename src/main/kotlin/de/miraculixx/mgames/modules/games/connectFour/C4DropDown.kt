@@ -5,12 +5,12 @@ import de.miraculixx.mgames.utils.entities.DropDownEvent
 import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.events.interaction.component.GenericSelectMenuInteractionEvent
 import net.dv8tion.jda.api.interactions.InteractionHook
-import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu
+import net.dv8tion.jda.api.components.selections.StringSelectMenu
 
 class C4DropDown : DropDownEvent {
     override suspend fun trigger(it: GenericSelectMenuInteractionEvent<String, StringSelectMenu>) {
         val member = it.member ?: return
-        val secondary = it.selectMenu.id?.split('_')?.get(3) == "2"
+        val secondary = it.componentId.split('_').getOrNull(3) == "2"
         val data = it.values.first().split('_')
         val emote = data[0]
         val guildID = it.guild?.idLong ?: return

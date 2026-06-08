@@ -5,6 +5,7 @@ import de.miraculixx.mgames.config.msgDiff
 import de.miraculixx.mgames.modules.games.GameManager
 import de.miraculixx.mgames.modules.games.GoalManager
 import de.miraculixx.mgames.modules.games.utils.enums.Game
+import net.dv8tion.jda.api.components.actionrow.ActionRow
 import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
@@ -58,7 +59,7 @@ class GameTools(private val gameTag: String, private val gameName: String, priva
     }
 
     suspend fun buttons(it: ButtonInteractionEvent) {
-        val id = it.button.id?.removePrefix("GAME_${gameTag}_") ?: return
+        val id = it.componentId.removePrefix("GAME_${gameTag}_")
         val member = it.member ?: return
         val guild = it.guild ?: return
         val options = id.split('_')
@@ -87,7 +88,7 @@ class GameTools(private val gameTag: String, private val gameName: String, priva
                 else it.editMessage(
                     "\uD83C\uDFAE || ${gameName.uppercase()}\n" +
                             "❌ ${member.asMention} ${msg("commandDeclineRequest", guildID)}"
-                ).setActionRow(it.message.actionRows.first().buttons.map { it.asDisabled() }).queue()
+                ).setComponents(ActionRow.of(it.message.components.first().asActionRow().buttons.map { it.asDisabled() })).queue()
             }
             "ACCEPT" -> if (options[1] == member.id)
                 it.reply(msgDiff(msg("commandSelfPlay", guildID))).setEphemeral(true).queue()

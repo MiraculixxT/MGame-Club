@@ -1,19 +1,18 @@
 package de.miraculixx.mgames.modules.trivia
 
 import de.miraculixx.mgames.utils.entities.ButtonEvent
-import dev.minn.jda.ktx.interactions.components.button
 import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.editMessage_
 import dev.minn.jda.ktx.messages.reply_
 import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
-import net.dv8tion.jda.api.interactions.components.ActionRow
-import net.dv8tion.jda.api.interactions.components.buttons.Button
-import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
+import net.dv8tion.jda.api.components.actionrow.ActionRow
+import net.dv8tion.jda.api.components.buttons.Button
+import net.dv8tion.jda.api.components.buttons.ButtonStyle
 
 class TriviaButton : ButtonEvent {
     override suspend fun trigger(it: ButtonInteractionEvent) {
-        val id = it.button.id ?: return
+        val id = it.componentId
         val split = id.split(':')
         if (split.firstOrNull() != "TRIVIA") return
         val userID = it.user.id
@@ -30,9 +29,9 @@ class TriviaButton : ButtonEvent {
             } else {
                 val description = embed.description
                 val category =
-                    TriviaCategory.values().firstOrNull { i -> description?.contains("``${i.title}``") == true }
+                    TriviaCategory.entries.firstOrNull { i -> description?.contains("``${i.title}``") == true }
                 val difficulty =
-                    TriviaDifficulty.values().firstOrNull { i -> description?.contains("``${i.title}``") == true }
+                    TriviaDifficulty.entries.firstOrNull { i -> description?.contains("``${i.title}``") == true }
 
                 generateQuestion(
                     category ?: TriviaCategory.RANDOM,
@@ -45,9 +44,9 @@ class TriviaButton : ButtonEvent {
         }
         val isFalse = split[2] != "1"
         val message = it.message
-        val components = message.components.first()
+        val components = message.components.first().asActionRow().buttons
         val embed = message.embeds.first()
-        val replay = ActionRow.of(button("TRIVIA:$userID:REPLAY", "Replay", Emoji.fromUnicode("\uD83D\uDD01"), ButtonStyle.PRIMARY))
+        val replay = ActionRow.of(Button.primary("TRIVIA:$userID:REPLAY", "Replay").withEmoji(Emoji.fromUnicode("\uD83D\uDD01")))
         if (isFalse) {
 
             it.editMessage_(null, listOf(Embed {
@@ -56,9 +55,8 @@ class TriviaButton : ButtonEvent {
                 color = 0xc21111
             }), listOf(ActionRow.of(buildList {
                 components.forEach { com ->
-                    com as Button
-                    if (id == com.id) add(com.asDisabled().withStyle(ButtonStyle.DANGER))
-                    else if (com.id!!.endsWith('1')) add(com.asDisabled().withStyle(ButtonStyle.PRIMARY))
+                    if (id == com.customId) add(com.asDisabled().withStyle(ButtonStyle.DANGER))
+                    else if (com.customId?.endsWith('1') == true) add(com.asDisabled().withStyle(ButtonStyle.PRIMARY))
                     else add(com.asDisabled())
                 }
             }), replay
@@ -72,8 +70,7 @@ class TriviaButton : ButtonEvent {
                 color = 0x00800f
             }), listOf(ActionRow.of(buildList {
                 components.forEach { com ->
-                    com as Button
-                    if (id == com.id) add(com.asDisabled().withStyle(ButtonStyle.SUCCESS))
+                    if (id == com.customId) add(com.asDisabled().withStyle(ButtonStyle.SUCCESS))
                     else add(com.asDisabled())
                 }
             }), replay

@@ -4,7 +4,7 @@ import de.miraculixx.mgames.modules.games.connectFour.C4DropDown
 import dev.minn.jda.ktx.events.listener
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.events.interaction.component.GenericSelectMenuInteractionEvent
-import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu
+import net.dv8tion.jda.api.components.selections.StringSelectMenu
 
 object DropDownManager {
     private val dropdowns = mapOf(
@@ -12,7 +12,7 @@ object DropDownManager {
     )
 
     fun startListen(jda: JDA) = jda.listener<GenericSelectMenuInteractionEvent<String, StringSelectMenu>> {
-        val id = it.selectMenu.id ?: return@listener
+        val id = it.componentId
         val commandClass = when {
             id.startsWith("GAME_C4_") -> dropdowns["GAME_C4"]
 

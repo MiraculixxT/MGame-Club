@@ -7,15 +7,17 @@ import de.miraculixx.mgames.utils.entities.ButtonEvent
 import de.miraculixx.mgames.utils.entities.ModalEvent
 import de.miraculixx.mgames.utils.entities.SlashCommandEvent
 import dev.minn.jda.ktx.messages.Embed
+import net.dv8tion.jda.api.components.actionrow.ActionRow
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import net.dv8tion.jda.api.interactions.callbacks.IModalCallback
-import net.dv8tion.jda.api.interactions.components.buttons.Button
-import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
-import net.dv8tion.jda.api.interactions.components.text.TextInput
-import net.dv8tion.jda.api.interactions.components.text.TextInputStyle
-import net.dv8tion.jda.api.interactions.modals.Modal
+import net.dv8tion.jda.api.components.buttons.Button
+import net.dv8tion.jda.api.components.buttons.ButtonStyle
+import net.dv8tion.jda.api.components.label.Label
+import net.dv8tion.jda.api.components.textinput.TextInput
+import net.dv8tion.jda.api.components.textinput.TextInputStyle
+import net.dv8tion.jda.api.modals.Modal
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.abs
 import kotlin.random.Random
@@ -41,7 +43,7 @@ object QuickMathCommand : SlashCommandEvent, ModalEvent, ButtonEvent {
         val challenge = if (daily) createChallenge(Random(GoalManager.getDailySeed())) else createChallenge(Random.Default)
         challenges[modalId] = challenge
 
-        val answer = TextInput.create(ANSWER_INPUT_ID, challenge.hiddenQuestion, TextInputStyle.SHORT)
+        val answer = TextInput.create(ANSWER_INPUT_ID, TextInputStyle.SHORT)
             .setPlaceholder("Antwort als ganze Zahl")
             .setRequired(true)
             .setMinLength(1)
@@ -50,7 +52,7 @@ object QuickMathCommand : SlashCommandEvent, ModalEvent, ButtonEvent {
 
         replyModal(
             Modal.create(modalId, "Quick Math")
-                .addActionRow(answer)
+                .addComponents(Label.of(challenge.hiddenQuestion, answer))
                 .build()
         ).queue()
     }
@@ -95,7 +97,7 @@ object QuickMathCommand : SlashCommandEvent, ModalEvent, ButtonEvent {
         } else null
 
         it.replyEmbeds(buildResultEmbed(challenge, answerRaw, elapsed, success, targetUserId, dailyResult?.reward ?: 0, dailyResult?.streak))
-            .addActionRow(Button.of(ButtonStyle.SUCCESS, PLAY_BUTTON_ID, "PLAY"))
+            .addComponents(ActionRow.of(Button.of(ButtonStyle.SUCCESS, PLAY_BUTTON_ID, "PLAY")))
             .queue()
     }
 
