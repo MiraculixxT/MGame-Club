@@ -12,7 +12,7 @@ object ButtonManager {
     private val buttons = mapOf(
         "GAME_TTT" to TTTListener(),
         "GAME_4G" to C4Button(),
-        "22142abbf1c74da187fdabd4b59d4456" to QuickMath,
+        "QUICK-MATH" to QuickMath,
         "TRIVIA" to TriviaButton()
     )
 
@@ -22,6 +22,7 @@ object ButtonManager {
             id.startsWith("GAME_TTT_") -> buttons["GAME_TTT"]
             id.startsWith("GAME_4G_") -> buttons["GAME_4G"]
             id.startsWith("TRIVIA:") -> buttons["TRIVIA"]
+            id.startsWith("QUICK-MATH:") -> buttons["QUICK-MATH"]
             else -> buttons[id]
         }
         commandClass?.trigger(it)

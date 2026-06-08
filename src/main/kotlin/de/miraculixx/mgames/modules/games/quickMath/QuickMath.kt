@@ -27,7 +27,7 @@ import kotlin.math.abs
 import kotlin.random.Random
 
 object QuickMath : SlashCommandEvent, ModalEvent, ButtonEvent {
-    private const val PLAY_BUTTON_ID = "22142abbf1c74da187fdabd4b59d4456"
+    private const val PLAY_BUTTON_ID = "QUICK-MATH"
     private const val ANSWER_INPUT_ID = "ANSWER"
     private const val MODAL_PREFIX = "QUICK-MATH"
     private val challenges = ConcurrentHashMap<String, MathChallenge>()
@@ -45,7 +45,9 @@ object QuickMath : SlashCommandEvent, ModalEvent, ButtonEvent {
     }
 
     override suspend fun trigger(it: ButtonInteractionEvent) {
-        it.openChallenge(it.user.idLong, daily = false, difficulty = MathDifficulty.EASY)
+        val id = it.componentId
+        val difficulty = id.substringAfter("$PLAY_BUTTON_ID:").toMathDifficulty()
+        it.openChallenge(it.user.idLong, daily = false, difficulty = difficulty)
     }
 
     private suspend fun IModalCallback.openChallenge(userId: Long, daily: Boolean, difficulty: MathDifficulty) {
@@ -141,20 +143,19 @@ object QuickMath : SlashCommandEvent, ModalEvent, ButtonEvent {
             if (success) "- Daily Challenge Geschafft!"
             else "- Daily Challenge Falsch :/"
         } else {
-            if (success) "- Richtig  >> `$result`\n- Zeit                           >> `${elapsed}s`"
+            if (success) "- Richtig  >> `$result`\n- Zeit >> `${elapsed}s`"
             else "- Falsch  >> `${submitted.ifBlank { "<leer>" }}` (`$result`)"
         }
 
         return listOf(
             Container.of(
                 Section.of(
-                    Button.of(ButtonStyle.SUCCESS, PLAY_BUTTON_ID, "𝗣𝗟𝗔𝗬"),
+                    Button.of(ButtonStyle.SUCCESS, "${PLAY_BUTTON_ID}:${challenge.difficulty}", "𝗣𝗟𝗔𝗬"),
                     TextDisplay.of("## 🎲 Quick Math")
                 ),
                 Separator.createDivider(Separator.Spacing.SMALL),
                 TextDisplay.of(
-                    if (streak == null) "- Challenge >> `${challenge.cleanQuestion}`" else {""} +
-                        if (streak == null) "\n- Difficulty >> `${challenge.difficulty.title}`" else {""} +
+                    if (streak == null) "- Challenge >> `${challenge.cleanQuestion}` (${challenge.difficulty.title})" else {""} +
                         "\n$answerLine" +
                         if (streak != null && success) "\n- Streak >> `${streak}`" else {""} +
                         "\n-# Von <@$user>${coinGrantFooter(reward)}"
