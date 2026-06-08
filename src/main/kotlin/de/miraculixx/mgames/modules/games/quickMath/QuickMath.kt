@@ -241,7 +241,7 @@ object QuickMath : SlashCommandEvent, ModalEvent, ButtonEvent {
         val helpText: String
             get() = buildString {
                 append("__Spickzettel__\n")
-                append("- *")
+                append("- ×")
                 if (allowModulo) append(" %")
                 append(" vor + - (Punkt vor Strich)\n")
                 if (allowModulo) append("- % ist Rest einer Division (modulo)\n")
@@ -303,7 +303,7 @@ object QuickMath : SlashCommandEvent, ModalEvent, ButtonEvent {
     private enum class Operator(val symbol: String, val precedence: Int) {
         ADD("+", 1),
         SUBTRACT("-", 1),
-        MULTIPLY("*", 2),
+        MULTIPLY("×", 2),
         MODULO("%", 2)
     }
 }
