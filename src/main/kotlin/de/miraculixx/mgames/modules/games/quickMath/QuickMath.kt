@@ -190,7 +190,7 @@ object QuickMath : SlashCommandEvent, ModalEvent, ButtonEvent {
         var right = randomExpression(random, difficulty, rightOperations)
 
         if (op == Operator.MODULO) {
-            while (right.value == 0L) right = randomExpression(random, difficulty, rightOperations)
+            while (right.value <= 0L) right = randomExpression(random, difficulty, rightOperations)
         }
 
         return Binary(left, op, right, grouped)
