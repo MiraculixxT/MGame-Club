@@ -1,5 +1,8 @@
 package de.miraculixx.mgames.modules.trivia
 
+import de.miraculixx.mgames.modules.games.GoalManager
+import de.miraculixx.mgames.modules.games.utils.enums.Game
+import de.miraculixx.mgames.modules.games.utils.enums.GameMode
 import de.miraculixx.mgames.utils.entities.ButtonEvent
 import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.editMessage_
@@ -42,11 +45,24 @@ class TriviaButton : ButtonEvent {
             message.editMessageEmbeds(listOf(gen.first)).setComponents(listOf(gen.second)).queue()
             return
         }
-        val isFalse = split[2] != "1"
+        val mode = split.getOrNull(2) ?: return
+        val answer = split.getOrNull(3) ?: split.getOrNull(2) ?: return
+        val daily = mode == "DAILY"
+        val success = answer == "1"
+        val isFalse = !success
+        val guildID = it.guild?.idLong ?: return
         val message = it.message
         val components = message.components.first().asActionRow().buttons
         val embed = message.embeds.first()
         val replay = ActionRow.of(Button.primary("TRIVIA:$userID:REPLAY", "Replay").withEmoji(Emoji.fromUnicode("\uD83D\uDD01")))
+        GoalManager.registerGameResult(
+            Game.TRIVIA,
+            GameMode.SOLO,
+            winnerSnowflake = if (success) it.user.idLong else null,
+            loserSnowflake = if (success) null else it.user.idLong,
+            guildSnowflake = guildID
+        )
+        val dailyResult = if (success && daily) GoalManager.registerDailyCompletion(Game.TRIVIA, it.user.idLong, guildID, 1) else null
         if (isFalse) {
 
             it.editMessage_(null, listOf(Embed {
@@ -66,7 +82,10 @@ class TriviaButton : ButtonEvent {
 
             it.editMessage_(null, listOf(Embed {
                 title = embed.title
-                description = embed.description?.replace("```fix\n", "```diff\n+ ")
+                description = embed.description?.replace(
+                    "```fix\n",
+                    "```diff\n+ "
+                ) + if (dailyResult != null) "\n> Daily Reward -> `${dailyResult.reward.takeIf { reward -> reward > 0 } ?: "already claimed"}`" else ""
                 color = 0x00800f
             }), listOf(ActionRow.of(buildList {
                 components.forEach { com ->

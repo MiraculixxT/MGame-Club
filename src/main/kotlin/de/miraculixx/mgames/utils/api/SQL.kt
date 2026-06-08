@@ -11,6 +11,7 @@ import java.sql.Connection
 import java.sql.DriverManager
 import java.sql.ResultSet
 import kotlin.math.abs
+import kotlin.time.Duration.Companion.milliseconds
 
 object SQL {
     private var connection: Connection
@@ -31,7 +32,7 @@ object SQL {
         while (!connection.isValid(1)) {
             "ERROR >> SQL - No valid connection!".error()
             connection = connect()
-            delay(1000)
+            delay(1000.milliseconds)
         }
 
         val query = if (resultSet != null) connection.prepareStatement(statement, resultSet)
@@ -43,7 +44,7 @@ object SQL {
         while (!connection.isValid(1)) {
             "ERROR >> SQL - No valid connection!".error()
             connection = connect()
-            delay(1000)
+            delay(1000.milliseconds)
         }
 
         return connection.prepareStatement(statement).use { it.executeUpdate() }
@@ -55,7 +56,7 @@ object SQL {
     private suspend fun createUser(userSnowflake: Long, guildSnowflake: Long): UserData {
         // Generell User Account
         getGuild(guildSnowflake)
-        update("INSERT INTO userData (Guild_ID, Discord_ID, Coins) VALUES ($guildSnowflake, $userSnowflake, 0)")
+        update("INSERT INTO userData (Guild_ID, Discord_ID, Coins, Total_Coins) VALUES ($guildSnowflake, $userSnowflake, 0, 0)")
         val userData = call("SELECT * FROM userData WHERE Guild_ID=$guildSnowflake && Discord_ID=$userSnowflake")
         userData.next()
         val userID = userData.getInt("ID")
@@ -63,7 +64,7 @@ object SQL {
         // Create Empty Data Rows to simplify future calls
         update("INSERT INTO userEmotesActive VALUES ($userID, '\uD83D\uDD34', '\uD83D\uDFE1')")
         return UserData(
-            userSnowflake, 0,
+            userSnowflake, 0, 0,
             UserEmote(emptyMap(), "\uD83D\uDD34", "\uD83D\uDFE1"),
             emptyList()
         )
@@ -86,6 +87,7 @@ object SQL {
         return UserData(
             userSnowflake,
             result.getInt("Coins"),
+            result.getInt("Total_Coins"),
             if (emotes) {
                 val allEmotes = call("SELECT Emote_Type, Emote FROM userEmotes, userData WHERE Guild_ID=$guildSnowflake && Discord_ID=$userSnowflake && userEmotes.ID=userData.ID")
                 val activeEmotes = call("SELECT * FROM userEmotesActive, userData WHERE Guild_ID=$guildSnowflake && Discord_ID=$userSnowflake && userEmotesActive.ID=userData.ID")
@@ -147,6 +149,12 @@ object SQL {
         )
     }
 
+    suspend fun addGameHistory(game: Game, users: Collection<Long>, timestamp: Long = System.currentTimeMillis()) {
+        users.distinct().forEach { userSnowflake ->
+            update("INSERT INTO gameHistory (Played_At, Game_ID, Discord_ID) VALUES ($timestamp, ${game.id}, $userSnowflake)")
+        }
+    }
+
     suspend fun addCoins(userSnowflake: Long, guildSnowflake: Long, amount: Int) {
         if (amount <= 0) return
         var id = getUserID(userSnowflake, guildSnowflake)
@@ -154,7 +162,7 @@ object SQL {
             createUser(userSnowflake, guildSnowflake)
             id = getUserID(userSnowflake, guildSnowflake)
         }
-        update("UPDATE userData SET Coins=Coins+$amount WHERE ID=$id")
+        update("UPDATE userData SET Coins=Coins+$amount, Total_Coins=Total_Coins+$amount WHERE ID=$id")
     }
 
     suspend fun getDailySeed(date: String): Long {
@@ -162,8 +170,21 @@ object SQL {
         if (existing.next()) return existing.getLong("Seed")
 
         val seed = abs(("MGame-Club:$date").hashCode().toLong()) + 1
-        update("INSERT INTO globalDaily VALUES ('$date', $seed)")
+        update("INSERT INTO globalDaily (Date, Seed, Trivia) VALUES ('$date', $seed, NULL)")
         return seed
+    }
+
+    suspend fun getDailyTrivia(date: String): String? {
+        getDailySeed(date)
+        val existing = call("SELECT Trivia FROM globalDaily WHERE Date='$date'")
+        if (!existing.next()) return null
+        return existing.getString("Trivia")
+    }
+
+    suspend fun setDailyTrivia(date: String, trivia: String) {
+        getDailySeed(date)
+        val escapedTrivia = trivia.replace("\\", "\\\\").replace("'", "''")
+        update("UPDATE globalDaily SET Trivia='$escapedTrivia' WHERE Date='$date'")
     }
 
     suspend fun completeDailyPlay(
@@ -234,10 +255,11 @@ object SQL {
 
     /**
      * @param id Discord User ID
-     * @param coins Amount of Coins
+     * @param coins Amount of spendable Coins
+     * @param totalCoins Total earned Coins
      * @param emotes All Emote Information
      */
-    data class UserData(val id: Long, val coins: Int, val emotes: UserEmote?, val daily: List<UserDailyPlay>?)
+    data class UserData(val id: Long, val coins: Int, val totalCoins: Int, val emotes: UserEmote?, val daily: List<UserDailyPlay>?)
 
     /**
      * @param id Discord Guild ID

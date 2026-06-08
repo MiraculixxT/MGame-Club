@@ -22,7 +22,7 @@ class CoinsCommand : SlashCommandEvent {
             else it.getOption("user")!!.asMember ?: return
         val guild = it.guild ?: return
         val guildID = guild.idLong
-        val userData = SQL.getUser(member.idLong, guild.idLong, daily = true)
+        val userData = SQL.getUser(member.idLong, guildID, daily = true)
         val dailyData = userData.daily ?: emptyList()
         if (userData.id == 0L) {
             it.reply("```diff\n- Wir konnten leider keine Daten über den Account finden :(```").setEphemeral(true).queue()
@@ -37,6 +37,11 @@ class CoinsCommand : SlashCommandEvent {
             title = "<:mcoin:996386525208117258> ~~M~~-**COINS** - `${userData.coins}`"
             description = if (ownStats) "<:blanc:784059217890770964> <:blanc:784059217890770964>" else "<:blanc:784059217890770964> **↳** `Miraculixx#1234` (<@341998118574751745>)\n" +
                     "<:blanc:784059217890770964> **↳** `Booster Rank` ${if (member.isBoosting) "<:yes:998195646467145751>" else "<:no:998195603324551323>"}"
+            field {
+                name = "Total Coins"
+                value = "`${userData.totalCoins}`"
+                inline = true
+            }
             if (ownStats) {
                 field {
                     name = "\uD83C\uDFAF  ||  DAILY PLAYS"

@@ -231,6 +231,10 @@ class C4Game(
                     "**\uD83C\uDFC1 || ${msg("gameEnd", guildID)}**\n" +
                     when (winner ?: FieldsTwoPlayer.EMPTY) {
                         FieldsTwoPlayer.EMPTY -> {
+                            GoalManager.registerGameHistory(
+                                Game.CONNECT_4,
+                                if (bot != null) listOf(member1.idLong) else listOf(member1.idLong, member2.idLong)
+                            )
                             if (daily) GoalManager.registerDailyCompletion(Game.CONNECT_4, member1.idLong, guildID, difficultyMultiplier)
                             msg("draw", guildID)
                         }

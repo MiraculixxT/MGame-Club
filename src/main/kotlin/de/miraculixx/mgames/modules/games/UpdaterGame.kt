@@ -1,6 +1,7 @@
 package de.miraculixx.mgames.modules.games
 
 import de.miraculixx.mgames.modules.games.utils.enums.Game
+import de.miraculixx.mgames.modules.trivia.ensureDailyTriviaQuestion
 import de.miraculixx.mgames.utils.Color
 import de.miraculixx.mgames.utils.api.SQL
 import de.miraculixx.mgames.utils.log
@@ -33,6 +34,7 @@ object UpdaterGame {
             delay(10.seconds) // Let the system slowly starts
             launch {
                 GoalManager.getDailySeed()
+                updateDailyTriviaQuestion()
                 while (true) {
                     val current = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
                     if (current.hour == 1) {
@@ -55,10 +57,16 @@ object UpdaterGame {
     suspend fun updateDailyPlays() {
         "---=---> DAILY UPDATE <---=---".log(Color.YELLOW)
         val seed = GoalManager.getDailySeed()
+        updateDailyTriviaQuestion()
         " - Daily seed: $seed".log(Color.YELLOW)
     }
 
-    private suspend fun updateLeaderboards() = runBlocking {
+    private suspend fun updateDailyTriviaQuestion() {
+        runCatching { ensureDailyTriviaQuestion() }
+            .onFailure { " - Daily trivia preload failed: ${it.message}".log(Color.YELLOW) }
+    }
+
+    private fun updateLeaderboards() = runBlocking {
         "---=---> STATS UPDATE <---=---".log(Color.YELLOW)
         val call = SQL.call("SELECT Stats_Channel, Discord_ID FROM guildData WHERE Premium=1 && Stats_Channel!=0")
 
@@ -85,7 +93,7 @@ object UpdaterGame {
             " - GUILD REMOVE > $guildID deleted their stats channel".log(Color.YELLOW)
             return
         }
-        val resp = SQL.call("SELECT Discord_ID, Coins FROM userData WHERE Guild_ID=$guildID ORDER BY Coins DESC LIMIT 10")
+        val resp = SQL.call("SELECT Discord_ID, Total_Coins FROM userData WHERE Guild_ID=$guildID ORDER BY Total_Coins DESC LIMIT 10")
 
         //Creating Embeds
         try {
@@ -95,12 +103,12 @@ object UpdaterGame {
                     title = "\uD83D\uDC51  || LEADERBOARD"
                     description = "Updates <t:${Clock.System.now().plus(1.hours).epochSeconds}:R>\n```fix\nWer ist der beste Zocker hier?```"
                     field {
-                        name = "Coins :coin:"
-                        value = buildField(resp, false, "Coins")
+                        name = "Total Coins :coin:"
+                        value = buildField(resp, false, "Total_Coins")
                     }
                     field {
                         name = "Top 10"
-                        value = buildField(resp, true, "Coins")
+                        value = buildField(resp, true, "Total_Coins")
                     }
                 },
                 Embed {

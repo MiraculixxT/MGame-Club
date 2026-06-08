@@ -10,6 +10,7 @@ CREATE TABLE userData (
     Guild_ID BIGINT NOT NULL,
     Discord_ID BIGINT NOT NULL,
     Coins INT NOT NULL,
+    Total_Coins INT NOT NULL,
     FOREIGN KEY (Guild_ID) REFERENCES guildData(Discord_ID)
 );
 
@@ -40,6 +41,14 @@ CREATE TABLE userStats (
     INDEX idx_stats_leaderboard (Game_ID, Mode_ID, Difficulty, Wins, Losses)
 );
 
+CREATE TABLE gameHistory (
+    Played_At BIGINT NOT NULL,
+    Game_ID TINYINT UNSIGNED NOT NULL,
+    Discord_ID BIGINT NOT NULL,
+    INDEX idx_history_game_time (Game_ID, Played_At),
+    INDEX idx_history_user_time (Discord_ID, Played_At)
+);
+
 CREATE TABLE userDailyPlay (
     ID INT NOT NULL,
     Game VARCHAR(64) NOT NULL,
@@ -52,5 +61,6 @@ CREATE TABLE userDailyPlay (
 
 CREATE TABLE globalDaily (
     Date VARCHAR(10) PRIMARY KEY,
-    Seed BIGINT NOT NULL
+    Seed BIGINT NOT NULL,
+    Trivia TEXT
 );

@@ -23,6 +23,7 @@ object GoalManager {
         guildSnowflake: Long,
         difficultyMultiplier: Int = 1
     ) {
+        registerGameHistory(game, listOfNotNull(winnerSnowflake, loserSnowflake))
         val difficulty = if (mode == GameMode.BOT) difficultyMultiplier.coerceIn(1, 3) else 0
         winnerSnowflake?.let {
             SQL.addGameStats(it, game, mode, difficulty, won = true)
@@ -31,6 +32,10 @@ object GoalManager {
         loserSnowflake?.let {
             SQL.addGameStats(it, game, mode, difficulty, won = false)
         }
+    }
+
+    suspend fun registerGameHistory(game: Game, users: Collection<Long>) {
+        SQL.addGameHistory(game, users)
     }
 
     suspend fun registerDailyCompletion(

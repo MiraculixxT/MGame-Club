@@ -122,6 +122,10 @@ class TTTGame(
                 "**\uD83C\uDFC1 || ${msg("gameEnd", guildID)}**\n" +
                 when (winner ?: return) {
                     FieldsTwoPlayer.EMPTY -> {
+                        GoalManager.registerGameHistory(
+                            Game.TIC_TAC_TOE,
+                            if (bot != null) listOf(member1.idLong) else listOf(member1.idLong, member2.idLong)
+                        )
                         if (daily) GoalManager.registerDailyCompletion(Game.TIC_TAC_TOE, member1.idLong, guildID, difficultyMultiplier)
                         msg("draw", guildID)
                     }

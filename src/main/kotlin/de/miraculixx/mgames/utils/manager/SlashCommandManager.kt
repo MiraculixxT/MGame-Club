@@ -45,12 +45,15 @@ object SlashCommandManager {
         jda.upsertCommand(Command("name", "desc"))
         jda.updateCommands().addCommands(
             Command("trivia", "Question your self some trivia!") {
-                option<String>("category", "Choose any category") {
-                    TriviaCategory.entries.forEach { choice(it.title, it.name) }
+                subcommand("play", "Answer a trivia question") {
+                    option<String>("category", "Choose any category") {
+                        TriviaCategory.entries.forEach { choice(it.title, it.name) }
+                    }
+                    option<String>("difficulty", "Choose any difficulty") {
+                        TriviaDifficulty.entries.forEach { choice(it.title, it.name) }
+                    }
                 }
-                option<String>("difficulty", "Choose any difficulty") {
-                    TriviaDifficulty.entries.forEach { choice(it.title, it.name) }
-                }
+                subcommand("daily", "Answer today's daily trivia question")
             },
             Command("tictactoe", "Play Tic-Tac-Toe against others") {
                 subcommand("user", "Play Tic-Tac-Toe against an other User") {
