@@ -203,7 +203,7 @@ object QuickMath : SlashCommandEvent, ModalEvent, ButtonEvent {
     private fun String?.toMathDifficulty(): MathDifficulty {
         return MathDifficulty.entries.firstOrNull { difficulty ->
             equals(difficulty.name, ignoreCase = true) || equals(difficulty.title, ignoreCase = true)
-        } ?: MathDifficulty.EASY
+        } ?: MathDifficulty.entries.random()
     }
 
     private fun fallbackExpression(difficulty: MathDifficulty): Expr {

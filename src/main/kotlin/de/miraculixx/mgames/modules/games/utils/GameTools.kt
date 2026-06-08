@@ -36,9 +36,9 @@ class GameTools(private val gameTag: String, private val gameName: String, priva
                 }
             }
             "bot" -> {
-                val option = it.getOption("difficulty")!!.asString
+                val option = it.getOption("difficulty")?.asString?.uppercase()
                 val level = option.toDifficultyLevel()
-                it.reply(msg("commandStartBotGame", discordID).replace("%DIFF%", option)).setEphemeral(true).queue()
+                it.reply(msg("commandStartBotGame", discordID).replace("%DIFF%", option ?: "RANDOM")).setEphemeral(true).queue()
                 GameManager.newGameVersus(game, it.guild ?: return, member.id to it.jda.selfUser.id, it.channel.idLong, level)
             }
             "daily" -> {
@@ -110,11 +110,12 @@ class GameTools(private val gameTag: String, private val gameName: String, priva
         }
     }
 
-    private fun String.toDifficultyLevel(): Int {
-        return when (uppercase()) {
+    private fun String?.toDifficultyLevel(): Int {
+        return when (this) {
             "HARD" -> 3
             "MEDIUM" -> 2
-            else -> 1
+            "EASY" -> 1
+            else -> (1..3).random()
         }
     }
 }
