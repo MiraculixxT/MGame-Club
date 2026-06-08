@@ -307,7 +307,7 @@ class C4Game(
     init {
         if (member2.user.isBot) {
             "GAME > Start Bot Game".log()
-            bot = C4Bot(botLevel)
+            bot = C4Bot(botLevel, random)
         }
         guildID = guild.idLong
 
