@@ -1,5 +1,8 @@
 package de.miraculixx.mgames.modules.games.quickMath
 
+import de.miraculixx.mgames.modules.games.GoalManager
+import de.miraculixx.mgames.modules.games.utils.enums.Game
+import de.miraculixx.mgames.utils.api.SQL
 import de.miraculixx.mgames.utils.entities.ButtonEvent
 import de.miraculixx.mgames.utils.entities.ModalEvent
 import de.miraculixx.mgames.utils.entities.SlashCommandEvent
@@ -25,17 +28,17 @@ object QuickMathCommand : SlashCommandEvent, ModalEvent, ButtonEvent {
     private val invisibleChars = listOf("\u200B", "\u200C", "\u200D", "\u2060")
 
     override suspend fun trigger(it: SlashCommandInteractionEvent) {
-        it.openChallenge(it.user.idLong)
+        it.openChallenge(it.user.idLong, daily = it.subcommandName == "daily")
     }
 
     override suspend fun trigger(it: ButtonInteractionEvent) {
-        it.openChallenge(it.user.idLong)
+        it.openChallenge(it.user.idLong, daily = false)
     }
 
-    private fun IModalCallback.openChallenge(userId: Long) {
+    private suspend fun IModalCallback.openChallenge(userId: Long, daily: Boolean) {
         val startedAt = System.currentTimeMillis()
-        val modalId = "$MODAL_PREFIX:$startedAt:$userId:${Random.nextInt(100_000, 1_000_000)}"
-        val challenge = createChallenge()
+        val modalId = "$MODAL_PREFIX:$startedAt:$userId:${Random.nextInt(100_000, 1_000_000)}:$daily"
+        val challenge = if (daily) createChallenge(Random(GoalManager.getDailySeed())) else createChallenge(Random.Default)
         challenges[modalId] = challenge
 
         val answer = TextInput.create(ANSWER_INPUT_ID, challenge.hiddenQuestion, TextInputStyle.SHORT)
@@ -56,6 +59,7 @@ object QuickMathCommand : SlashCommandEvent, ModalEvent, ButtonEvent {
         val parts = it.modalId.split(":")
         val startedAt = parts.getOrNull(1)?.toLongOrNull()
         val targetUserId = parts.getOrNull(2)?.toLongOrNull()
+        val daily = parts.getOrNull(4)?.toBooleanStrictOrNull() ?: false
         val answerRaw = it.getValue(ANSWER_INPUT_ID)?.asString?.trim().orEmpty()
         val answer = answerRaw.toLongOrNull()
 
@@ -78,8 +82,14 @@ object QuickMathCommand : SlashCommandEvent, ModalEvent, ButtonEvent {
         val elapsedMs = System.currentTimeMillis() - startedAt
         val elapsed = "%.2f".format(elapsedMs / 1000.0)
         val success = answer == challenge.result
+        val dailyResult = if (success && daily) {
+            GoalManager.registerDailyCompletion(Game.QUICK_MATH, targetUserId, it.guild?.idLong ?: return, 1)
+        } else null
+        if (success && !daily) {
+            SQL.addCoins(targetUserId, it.guild?.idLong ?: return, Game.QUICK_MATH.coinValue)
+        }
 
-        it.replyEmbeds(buildResultEmbed(challenge, answerRaw, elapsed, success, targetUserId))
+        it.replyEmbeds(buildResultEmbed(challenge, answerRaw, elapsed, success, targetUserId, dailyResult?.reward ?: 0, dailyResult?.streak))
             .addActionRow(Button.of(ButtonStyle.SUCCESS, PLAY_BUTTON_ID, "PLAY"))
             .queue()
     }
@@ -89,14 +99,21 @@ object QuickMathCommand : SlashCommandEvent, ModalEvent, ButtonEvent {
         submitted: String,
         elapsed: String,
         success: Boolean,
-        user: Long
+        user: Long,
+        reward: Int,
+        streak: Int?
     ) = Embed {
         title = "\uD83C\uDFB2 Quick Math"
         color = if (success) 0x2ECC71 else 0xE74C3C
 
         val result = challenge.result.toString()
         val answerLine = if (success) {
-            "- Richtige Antwort  >> `$result`\n- Zeit                           >> `${elapsed}s`"
+            "- Richtige Antwort  >> `$result`\n- Zeit                           >> `${elapsed}s`" +
+                when {
+                    reward > 0 -> "\n- Daily Reward          >> `$reward Coins`\n- Daily Streak            >> `$streak`"
+                    streak != null -> "\n- Daily Reward          >> `already claimed`\n- Daily Streak            >> `$streak`"
+                    else -> ""
+                }
         } else {
             "- Falsche Antwort  >> `${submitted.ifBlank { "<leer>" }}` (`$result`)"
         }
@@ -106,11 +123,11 @@ object QuickMathCommand : SlashCommandEvent, ModalEvent, ButtonEvent {
                 "-# Beantwortet von <@$user>"
     }
 
-    private fun createChallenge(): MathChallenge {
+    private fun createChallenge(random: Random): MathChallenge {
         repeat(50) {
-            val expression = randomExpression(depth = Random.nextInt(2, 4), topLevel = true)
+            val expression = randomExpression(random, depth = random.nextInt(2, 4), topLevel = true)
             val question = expression.render()
-            val hiddenQuestion = question.hideSpaces()
+            val hiddenQuestion = question.hideSpaces(random)
             if (question.length <= 34 && hiddenQuestion.length <= 45 && abs(expression.value) <= 100_000) {
                 return MathChallenge(question, hiddenQuestion, expression.value)
             }
@@ -118,26 +135,26 @@ object QuickMathCommand : SlashCommandEvent, ModalEvent, ButtonEvent {
 
         val fallback = Binary(Const(38), Operator.ADD, Binary(Const(-8), Operator.MULTIPLY, Const(3), grouped = false), grouped = false)
         val question = fallback.render()
-        return MathChallenge(question, question.hideSpaces(), fallback.value)
+        return MathChallenge(question, question.hideSpaces(random), fallback.value)
     }
 
-    private fun randomExpression(depth: Int, topLevel: Boolean = false): Expr {
-        if (depth <= 0) return Const(Random.nextInt(-12, 51).let { if (it == 0) 1 else it }.toLong())
+    private fun randomExpression(random: Random, depth: Int, topLevel: Boolean = false): Expr {
+        if (depth <= 0) return Const(random.nextInt(-12, 51).let { if (it == 0) 1 else it }.toLong())
 
-        val op = randomOperator()
-        val grouped = !topLevel && Random.nextBoolean()
-        val left = randomExpression(depth - 1)
-        var right = randomExpression(depth - 1)
+        val op = randomOperator(random)
+        val grouped = !topLevel && random.nextBoolean()
+        val left = randomExpression(random, depth - 1)
+        var right = randomExpression(random, depth - 1)
 
         if (op == Operator.MODULO) {
-            while (right.value == 0L) right = randomExpression(depth - 1)
+            while (right.value == 0L) right = randomExpression(random, depth - 1)
         }
 
         return Binary(left, op, right, grouped)
     }
 
-    private fun randomOperator(): Operator {
-        return when (Random.nextInt(100)) {
+    private fun randomOperator(random: Random): Operator {
+        return when (random.nextInt(100)) {
             in 0..6 -> Operator.MODULO
             in 7..29 -> Operator.MULTIPLY
             in 30..61 -> Operator.SUBTRACT
@@ -145,9 +162,9 @@ object QuickMathCommand : SlashCommandEvent, ModalEvent, ButtonEvent {
         }
     }
 
-    private fun String.hideSpaces(): String {
+    private fun String.hideSpaces(random: Random): String {
         return Regex(" ").replace(this) {
-            " " + invisibleChars.shuffled().take(Random.nextInt(1, 4)).joinToString("")
+            " " + invisibleChars.shuffled(random).take(random.nextInt(1, 4)).joinToString("")
         }
     }
 

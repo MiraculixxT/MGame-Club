@@ -8,6 +8,7 @@ import kotlinx.coroutines.delay
 import java.sql.Connection
 import java.sql.DriverManager
 import java.sql.ResultSet
+import kotlin.math.abs
 
 object SQL {
     private var connection: Connection
@@ -36,30 +37,40 @@ object SQL {
         return query.executeQuery()
     }
 
+    suspend fun update(statement: String): Int {
+        while (!connection.isValid(1)) {
+            "ERROR >> SQL - No valid connection!".error()
+            connection = connect()
+            delay(1000)
+        }
+
+        return connection.prepareStatement(statement).use { it.executeUpdate() }
+    }
+
     /*
     Interactions to the API
      */
     private suspend fun createUser(userSnowflake: Long, guildSnowflake: Long): UserData {
         // Generell User Account
-        call("INSERT INTO userData VALUES (default, $guildSnowflake, $userSnowflake, 0)")
+        getGuild(guildSnowflake)
+        update("INSERT INTO userData (Guild_ID, Discord_ID, Coins) VALUES ($guildSnowflake, $userSnowflake, 0)")
         val userData = call("SELECT * FROM userData WHERE Guild_ID=$guildSnowflake && Discord_ID=$userSnowflake")
         userData.next()
         val userID = userData.getInt("ID")
 
         // Create Empty Data Rows to simplify future calls
-        call("INSERT INTO userEmotesActive VALUES ($userID, '\uD83D\uDD34', '\uD83D\uDFE1')")
-        call("INSERT INTO userWins VALUES ($userID, 0, 0, 0, 0, 0, 0)")
-        call("INSERT INTO userDaily VALUES ($userID, false, false, false, false)")
+        update("INSERT INTO userEmotesActive VALUES ($userID, '\uD83D\uDD34', '\uD83D\uDFE1')")
+        update("INSERT INTO userWins VALUES ($userID, 0, 0, 0, 0)")
         return UserData(
             userSnowflake, 0,
             UserEmote(emptyMap(), "\uD83D\uDD34", "\uD83D\uDFE1"),
-            UserWins(0, 0, 0, 0, 0, 0),
-            UserDailyChallenges(false, false, false, false)
+            UserWins(0, 0, 0, 0),
+            emptyList()
         )
     }
 
     private suspend fun createGuild(guildSnowflake: Long): GuildData {
-        call("INSERT INTO guildData VALUES (default, $guildSnowflake, false, 0, 'EN_US')")
+        update("INSERT INTO guildData (Discord_ID, Premium, Stats_Channel, Language) VALUES ($guildSnowflake, false, 0, 'EN_US')")
         return GuildData(guildSnowflake, false, 0)
     }
 
@@ -105,20 +116,9 @@ object SQL {
                     winData.getInt("TTT_Bot"),
                     winData.getInt("C4"),
                     winData.getInt("C4_Bot"),
-                    winData.getInt("Chess"),
-                    winData.getInt("Chess_Bot"),
                 )
             } else null,
-            if (daily) {
-                val dailyData = call("SELECT * FROM userDaily, userData WHERE Guild_ID=$guildSnowflake && Discord_ID=$userSnowflake && userDaily.ID=userData.ID")
-                dailyData.next()
-                UserDailyChallenges(
-                    dailyData.getBoolean("Task_1"),
-                    dailyData.getBoolean("Task_2"),
-                    dailyData.getBoolean("Task_3"),
-                    dailyData.getBoolean("Task_Bonus")
-                )
-            } else null
+            if (daily) getDailyPlays(result.getInt("ID")) else null
         )
     }
 
@@ -133,25 +133,17 @@ object SQL {
     }
 
     suspend fun setUserCoins(userSnowflake: Long, guildSnowflake: Long, amount: Int) {
-        call("UPDATE userData SET Coins=$amount WHERE Discord_ID=$userSnowflake && Guild_ID=$guildSnowflake")
+        update("UPDATE userData SET Coins=$amount WHERE Discord_ID=$userSnowflake && Guild_ID=$guildSnowflake")
     }
 
     suspend fun addEmote(userSnowflake: Long, guildSnowflake: Long, type: String, emote: String) {
         val id = getUserID(userSnowflake, guildSnowflake)
-        call("INSERT INTO userEmotes VALUES ($id, '$type', '$emote')")
+        update("INSERT INTO userEmotes VALUES ($id, '$type', '$emote')")
     }
 
     suspend fun setActiveEmote(userSnowflake: Long, guildSnowflake: Long, type: String, newEmote: String) {
         val id = getUserID(userSnowflake, guildSnowflake)
-        call("UPDATE userEmotesActive SET $type='$newEmote' WHERE ID=$id")
-    }
-
-    suspend fun updateDailyChallenges(challenges: List<String>) {
-        if (challenges.size != 4) {
-            "ERROR > Invalid Daily Challenges Update".error()
-            return
-        }
-        call("UPDATE globalDaily SET Task_1='${challenges[0]}', Task_2='${challenges[1]}', Task_3='${challenges[2]}', Task_Bonus='${challenges[3]}'")
+        update("UPDATE userEmotesActive SET $type='$newEmote' WHERE ID=$id")
     }
 
     suspend fun addWin(userSnowflake: Long, guildSnowflake: Long, type: String) {
@@ -160,7 +152,80 @@ object SQL {
             createUser(userSnowflake, guildSnowflake)
             id = getUserID(userSnowflake, guildSnowflake)
         }
-        call("UPDATE userWins SET $type=$type+1 WHERE ID=$id")
+        update("UPDATE userWins SET $type=$type+1 WHERE ID=$id")
+    }
+
+    suspend fun addCoins(userSnowflake: Long, guildSnowflake: Long, amount: Int) {
+        if (amount <= 0) return
+        var id = getUserID(userSnowflake, guildSnowflake)
+        if (id == 0) {
+            createUser(userSnowflake, guildSnowflake)
+            id = getUserID(userSnowflake, guildSnowflake)
+        }
+        update("UPDATE userData SET Coins=Coins+$amount WHERE ID=$id")
+    }
+
+    suspend fun getDailySeed(date: String): Long {
+        val existing = call("SELECT Seed FROM globalDaily WHERE Date='$date'")
+        if (existing.next()) return existing.getLong("Seed")
+
+        val seed = abs(("MGame-Club:$date").hashCode().toLong()) + 1
+        update("INSERT INTO globalDaily VALUES ('$date', $seed)")
+        return seed
+    }
+
+    suspend fun completeDailyPlay(
+        userSnowflake: Long,
+        guildSnowflake: Long,
+        game: String,
+        date: String,
+        previousDate: String,
+        reward: Int
+    ): DailyPlayResult {
+        var id = getUserID(userSnowflake, guildSnowflake)
+        if (id == 0) {
+            createUser(userSnowflake, guildSnowflake)
+            id = getUserID(userSnowflake, guildSnowflake)
+        }
+
+        val escapedGame = game.replace("'", "''")
+        val existing = call("SELECT Last_Play_Date, Streak, Last_Claim_Date FROM userDailyPlay WHERE ID=$id && Game='$escapedGame'")
+        if (existing.next()) {
+            val lastClaim = existing.getString("Last_Claim_Date")
+            if (lastClaim == date) {
+                return DailyPlayResult(false, existing.getInt("Streak"), 0)
+            }
+
+            val previousStreak = existing.getInt("Streak")
+            val lastPlay = existing.getString("Last_Play_Date")
+            val nextStreak = if (lastPlay == previousDate) previousStreak + 1 else 1
+            update(
+                "UPDATE userDailyPlay SET Last_Play_Date='$date', Streak=$nextStreak, Last_Claim_Date='$date' " +
+                    "WHERE ID=$id && Game='$escapedGame'"
+            )
+            addCoins(userSnowflake, guildSnowflake, reward)
+            return DailyPlayResult(true, nextStreak, reward)
+        }
+
+        update("INSERT INTO userDailyPlay VALUES ($id, '$escapedGame', '$date', 1, '$date')")
+        addCoins(userSnowflake, guildSnowflake, reward)
+        return DailyPlayResult(true, 1, reward)
+    }
+
+    private suspend fun getDailyPlays(userID: Int): List<UserDailyPlay> {
+        val dailyData = call("SELECT Game, Last_Play_Date, Streak, Last_Claim_Date FROM userDailyPlay WHERE ID=$userID")
+        return buildList {
+            while (dailyData.next()) {
+                add(
+                    UserDailyPlay(
+                        dailyData.getString("Game"),
+                        dailyData.getString("Last_Play_Date"),
+                        dailyData.getInt("Streak"),
+                        dailyData.getString("Last_Claim_Date")
+                    )
+                )
+            }
+        }
     }
 
 
@@ -176,12 +241,12 @@ object SQL {
      * @param tttBot Wins in TicTacToe - Bot
      * @param c4 Wins in Connect 4 - User
      * @param c4Bot Wins in Connect 4 - Bot
-     * @param chess Wins in Chess - User
-     * @param chessBot Wins in Chess - Bot
      */
-    data class UserWins(val ttt: Int, val tttBot: Int, val c4: Int, val c4Bot: Int, val chess: Int, val chessBot: Int)
+    data class UserWins(val ttt: Int, val tttBot: Int, val c4: Int, val c4Bot: Int)
 
-    data class UserDailyChallenges(val c1: Boolean, val c2: Boolean, val c3: Boolean, val bonus: Boolean)
+    data class UserDailyPlay(val game: String, val lastPlayDate: String, val streak: Int, val lastClaimDate: String)
+
+    data class DailyPlayResult(val claimed: Boolean, val streak: Int, val reward: Int)
 
     /**
      * @param id Discord User ID
@@ -189,7 +254,7 @@ object SQL {
      * @param emotes All Emote Information
      * @param wins All Wins Information
      */
-    data class UserData(val id: Long, val coins: Int, val emotes: UserEmote?, val wins: UserWins?, val daily: UserDailyChallenges?)
+    data class UserData(val id: Long, val coins: Int, val emotes: UserEmote?, val wins: UserWins?, val daily: List<UserDailyPlay>?)
 
     /**
      * @param id Discord Guild ID

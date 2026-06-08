@@ -50,7 +50,7 @@ class SetupCommand : SlashCommandEvent {
                             //target?.upsertPermissionOverride(it.jda.selfUser)
                             hook.editOriginal("**>> ERFOLG**\n${target.asMention} ist nun der Game Stats Channel!").queue()
 
-                            SQL.call("UPDATE guildData SET Stats_Channel=${target.id} WHERE Discord_ID=${guild.id}")
+                            SQL.update("UPDATE guildData SET Stats_Channel=${target.id} WHERE Discord_ID=${guild.id}")
                         } catch (e: InsufficientPermissionException) {
                             e.notify(hook)
                         }
@@ -76,7 +76,7 @@ class SetupCommand : SlashCommandEvent {
                     "English" -> "EN_US"
                     else -> "Error"
                 }
-                SQL.call("UPDATE guildData SET lang='$langKey' WHERE Discord_ID=$guildID")
+                SQL.update("UPDATE guildData SET Language='$langKey' WHERE Discord_ID=$guildID")
 
                 it.replyEmbeds(
                     Embed {

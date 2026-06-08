@@ -46,7 +46,7 @@ class Main {
 
         jda = default(coreConf.DISCORD_TOKEN) {
             disableCache(CacheFlag.VOICE_STATE)
-            setActivity(Activity.competing("Chess Games"))
+            setActivity(Activity.competing("Daily Games"))
             setStatus(OnlineStatus.DO_NOT_DISTURB)
             intents += listOf(GatewayIntent.GUILD_MEMBERS)
         }

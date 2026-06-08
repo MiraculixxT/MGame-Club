@@ -34,8 +34,11 @@ class C4Game(
     private val uuid: UUID,
     guild: Guild,
     channelID: Long,
-    botLevel: Int
+    botLevel: Int,
+    private val daily: Boolean = false,
+    seed: Long? = null
 ) : SimpleGame {
+    override val startedAt: Long = System.currentTimeMillis()
 
     private lateinit var member1Emote: String
     private lateinit var member2Emote: String
@@ -44,7 +47,9 @@ class C4Game(
     // Who is playing the next step
     // True - P1 (red) || False - P2 (green)
     private var bot: C4Bot? = null
-    private var whoPlays = Random.nextBoolean()
+    private val random = seed?.let { Random(it) } ?: Random.Default
+    private val difficultyMultiplier = botLevel.coerceIn(1, 3)
+    private var whoPlays = random.nextBoolean()
     private var winner: FieldsTwoPlayer? = null
     private lateinit var message: Message
     private lateinit var threadMessage: Message
@@ -224,18 +229,22 @@ class C4Game(
                     "**\uD83C\uDFC1 || ${msg("gameEnd", guildID)}**\n" +
                     when (winner ?: FieldsTwoPlayer.EMPTY) {
                         FieldsTwoPlayer.EMPTY -> {
-                            GoalManager.registerDraw(Game.CONNECT_4, member1.idLong, guildID)
-                            GoalManager.registerDraw(Game.CONNECT_4, member2.idLong, guildID)
+                            if (daily) GoalManager.registerDailyCompletion(Game.CONNECT_4, member1.idLong, guildID, difficultyMultiplier)
                             msg("draw", guildID)
                         }
 
                         FieldsTwoPlayer.PLAYER_1 -> {
-                            GoalManager.registerWin(Game.CONNECT_4, bot != null, member1.idLong, guildID)
+                            GoalManager.registerWin(Game.CONNECT_4, bot != null, member1.idLong, guildID, difficultyMultiplier)
+                            if (daily) GoalManager.registerDailyCompletion(Game.CONNECT_4, member1.idLong, guildID, difficultyMultiplier)
                             "$member1Emote ${member1.asMention} ${msg("win", guildID)}"
                         }
 
                         FieldsTwoPlayer.PLAYER_2 -> {
-                            GoalManager.registerWin(Game.CONNECT_4, bot != null, member2.idLong, guildID)
+                            if (bot == null) {
+                                GoalManager.registerWin(Game.CONNECT_4, false, member2.idLong, guildID, difficultyMultiplier)
+                            } else if (daily) {
+                                GoalManager.registerDailyCompletion(Game.CONNECT_4, member1.idLong, guildID, difficultyMultiplier)
+                            }
                             "$member2Emote ${member2.asMention} ${msg("win", guildID)}"
                         }
                     }

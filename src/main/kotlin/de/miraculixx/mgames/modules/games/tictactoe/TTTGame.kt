@@ -28,14 +28,19 @@ class TTTGame(
     private val uuid: UUID,
     channelID: Long,
     guild: Guild,
-    botLevel: Int
+    botLevel: Int,
+    private val daily: Boolean = false,
+    seed: Long? = null
 ) : SimpleGame {
+    override val startedAt: Long = System.currentTimeMillis()
 
     // Who is playing the next step
     // True - P1 (red) || False - P2 (green)
     private val bot: TTTBot?
     private var guildID: Long
-    private var whoPlays = Random.nextBoolean()
+    private val random = seed?.let { Random(it) } ?: Random.Default
+    private val difficultyMultiplier = botLevel.coerceIn(1, 3)
+    private var whoPlays = random.nextBoolean()
     private var winner: FieldsTwoPlayer? = null
     private lateinit var message: Message
     private lateinit var threadMessage: Message
@@ -115,16 +120,20 @@ class TTTGame(
                 "**\uD83C\uDFC1 || ${msg("gameEnd", guildID)}**\n" +
                 when (winner ?: return) {
                     FieldsTwoPlayer.EMPTY -> {
-                        GoalManager.registerDraw(Game.TIC_TAC_TOE, member1.idLong, guildID)
-                        GoalManager.registerDraw(Game.TIC_TAC_TOE, member2.idLong, guildID)
+                        if (daily) GoalManager.registerDailyCompletion(Game.TIC_TAC_TOE, member1.idLong, guildID, difficultyMultiplier)
                         msg("draw", guildID)
                     }
                     FieldsTwoPlayer.PLAYER_1 -> {
-                        GoalManager.registerWin(Game.TIC_TAC_TOE, bot != null, member1.idLong, guildID)
+                        GoalManager.registerWin(Game.TIC_TAC_TOE, bot != null, member1.idLong, guildID, difficultyMultiplier)
+                        if (daily) GoalManager.registerDailyCompletion(Game.TIC_TAC_TOE, member1.idLong, guildID, difficultyMultiplier)
                         "<:xx:988156472020066324> ${member1.asMention} ${msg("win", guildID)}"
                     }
                     FieldsTwoPlayer.PLAYER_2 -> {
-                        GoalManager.registerWin(Game.TIC_TAC_TOE, bot != null, member2.idLong, guildID)
+                        if (bot == null) {
+                            GoalManager.registerWin(Game.TIC_TAC_TOE, false, member2.idLong, guildID, difficultyMultiplier)
+                        } else if (daily) {
+                            GoalManager.registerDailyCompletion(Game.TIC_TAC_TOE, member1.idLong, guildID, difficultyMultiplier)
+                        }
                         "<:oo:988156473274163200> ${member2.asMention} ${msg("win", guildID)}!"
                     }
                 }
@@ -230,7 +239,7 @@ class TTTGame(
     init {
         bot = if (member2.user.isBot) {
             "GAME > Start TTT Bot Game".log()
-            TTTBot(botLevel, FieldsTwoPlayer.PLAYER_2)
+            TTTBot(botLevel, FieldsTwoPlayer.PLAYER_2, random)
         } else null
         guildID = guild.idLong
 

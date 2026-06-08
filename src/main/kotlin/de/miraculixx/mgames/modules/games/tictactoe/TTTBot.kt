@@ -5,7 +5,7 @@ import de.miraculixx.mgames.modules.games.utils.getOpponent
 import kotlin.random.Random
 import kotlin.random.nextInt
 
-class TTTBot(val level: Int, private val player: FieldsTwoPlayer) {
+class TTTBot(val level: Int, private val player: FieldsTwoPlayer, private val random: Random = Random.Default) {
     fun getMove(board: Array<Array<FieldsTwoPlayer>>): Pair<Int, Int> {
         return when (level) {
             1 -> getRandomMove(board)
@@ -27,12 +27,12 @@ class TTTBot(val level: Int, private val player: FieldsTwoPlayer) {
                 }
                 r++
             }
-        }.random()
+        }.random(random)
     }
 
     private fun getSmartMove(board: Array<Array<FieldsTwoPlayer>>, moves: Int): Pair<Int, Int> {
         return when (moves) {
-            0 -> when (Random.nextInt(1..4)) { //Place in Corner
+            0 -> when (random.nextInt(1..4)) { //Place in Corner
                 2 -> 2 to 0
                 3 -> 0 to 2
                 4 -> 2 to 2

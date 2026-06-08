@@ -14,11 +14,6 @@ class AdminCommand : SlashCommandEvent {
                 UpdaterGame.updateLeaderboardGuild(guild, guild.getTextChannelById(data.statsChannel))
                 it.reply("Done").setEphemeral(true).queue()
             }
-
-            "swap-daily" -> {
-                UpdaterGame.updateDailyChallenges()
-                it.reply("Done").setEphemeral(true).queue()
-            }
         }
     }
 }

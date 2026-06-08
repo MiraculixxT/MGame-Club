@@ -36,13 +36,23 @@ class GameTools(private val gameTag: String, private val gameName: String, priva
             }
             "bot" -> {
                 val option = it.getOption("difficulty")!!.asString
-                val level = when (option) {
-                    "Hard" -> 3
-                    "Medium" -> 2
-                    else -> 1
-                }
+                val level = option.toDifficultyLevel()
                 it.reply(msg("commandStartBotGame", discordID).replace("%DIFF%", option)).setEphemeral(true).queue()
                 GameManager.newGameVersus(game, it.guild ?: return, member.id to it.jda.selfUser.id, it.channel.idLong, level)
+            }
+            "daily" -> {
+                val option = it.getOption("difficulty")?.asString ?: "Easy"
+                val level = option.toDifficultyLevel()
+                it.reply("```diff\n+ Daily ${game.title} wird gestartet!\n+ Difficulty: $option```").setEphemeral(true).queue()
+                GameManager.newGameVersus(
+                    game,
+                    it.guild ?: return,
+                    member.id to it.jda.selfUser.id,
+                    it.channel.idLong,
+                    level,
+                    daily = true,
+                    seed = GoalManager.getDailySeed()
+                )
             }
         }
     }
@@ -60,7 +70,6 @@ class GameTools(private val gameTag: String, private val gameName: String, priva
             "P" -> GameManager.getGame(guild.idLong, game, UUID.fromString(options[1]))
                     ?.interact(options.subList(2, options.size), member, it)
             "R" -> {
-                GoalManager.registerNewGame(game, true, member.idLong, guildID)
                 it.message.delete().queue()
                 GameManager.newGameVersus(game, guild, options[1] to options[2], (it.channel as ThreadChannel).parentMessageChannel.idLong)
             }
@@ -85,7 +94,7 @@ class GameTools(private val gameTag: String, private val gameName: String, priva
             else {
                 it.message.delete().queue()
                 it.reply(msg("commandStartGame", guildID)).setEphemeral(true).queue()
-                GameManager.newGameVersus(game, guild, listOf(options[1], member.id), it.channel.idLong)
+                GameManager.newGameVersus(game, guild, options[1] to member.id, it.channel.idLong)
             }
             "CANCEL" -> if (options[1] != member.id)
                 it.reply(msgDiff(msg("commandCannotDeny", guildID))).setEphemeral(true).queue()
@@ -93,6 +102,14 @@ class GameTools(private val gameTag: String, private val gameName: String, priva
                 it.message.delete().queue()
                 it.reply(msg("commandQueueLeave", guildID)).setEphemeral(true).queue()
             }
+        }
+    }
+
+    private fun String.toDifficultyLevel(): Int {
+        return when (this) {
+            "Hard" -> 3
+            "Medium" -> 2
+            else -> 1
         }
     }
 }

@@ -1,7 +1,6 @@
 package de.miraculixx.mgames.utils.manager
 
 import de.miraculixx.mgames.Main
-import de.miraculixx.mgames.modules.games.chess.ChessCommand
 import de.miraculixx.mgames.modules.games.connectFour.C4Command
 import de.miraculixx.mgames.modules.games.quickMath.QuickMathCommand
 import de.miraculixx.mgames.modules.games.tictactoe.TTTCommand
@@ -26,7 +25,6 @@ object SlashCommandManager {
     private val commands = mapOf(
         "tictactoe" to TTTCommand(),
         "connect-4" to C4Command(),
-        "chess" to ChessCommand(),
         "quick-math" to QuickMathCommand,
         "setup" to SetupCommand(),
         "admin" to AdminCommand(),
@@ -61,6 +59,9 @@ object SlashCommandManager {
                 subcommand("bot", "Play Tic-Tac-Toe against our AI") {
                     addOption(OptionType.STRING, "difficulty", "How good should the AI play?", true, true)
                 }
+                subcommand("daily", "Play today's seeded Tic-Tac-Toe challenge") {
+                    addOption(OptionType.STRING, "difficulty", "How good should the AI play?", true, true)
+                }
             },
             Command("connect-4", "Play Connect-4 against others") {
                 subcommand("user", "Play Connect 4 against an other User") {
@@ -69,20 +70,15 @@ object SlashCommandManager {
                 subcommand("bot", "Play Connect 4 against our AI") {
                     addOption(OptionType.STRING, "difficulty", "How good should the AI play?", true, true)
                 }
+                subcommand("daily", "Play today's seeded Connect 4 challenge") {
+                    addOption(OptionType.STRING, "difficulty", "How good should the AI play?", true, true)
+                }
                 subcommand("skin", "Choose a Skin for your Chip")
             },
-            Command("chess", "Play Chess against others") {
-                subcommand("user", "Play Chess against an other User") {
-                    addOption(OptionType.USER, "request", "Send a game request to your selected User")
-                }
-                /*
-                    subcommand("bot", "Play Chess against our AI") {
-                        addOption(OptionType.STRING, "difficulty", "How good should the AI play?", true, true)
-                    }
-                    subcommand("skin", "Choose a Skin for your Chip")
-                     */
+            Command("quick-math", "Solve a quick math challenge") {
+                subcommand("play", "Solve a quick math challenge")
+                subcommand("daily", "Solve today's seeded quick math challenge")
             },
-            Command("quick-math", "Solve a quick math challenge"),
 
             Command("coins", "Inspect your personal stats") {
                 addOption(OptionType.USER, "user", "Inspect the stats from an other User")
@@ -102,7 +98,6 @@ object SlashCommandManager {
             ?.addCommands(
                 Command("admin", "Admin Command") {
                     defaultPermissions = DefaultMemberPermissions.DISABLED
-                    subcommand("swap-daily", "Ändern der Täglichen Challenges")
                     subcommand("refresh-stats", "Erneuert die Stats")
                     subcommand("draw-image", "Draw Image")
                 }

@@ -1,8 +1,16 @@
+CREATE TABLE guildData (
+    Discord_ID BIGINT PRIMARY KEY,
+    Premium BOOLEAN NOT NULL,
+    Stats_Channel BIGINT NOT NULL,
+    Language VARCHAR(10) NOT NULL
+);
+
 CREATE TABLE userData (
     ID INT AUTO_INCREMENT PRIMARY KEY,
     Guild_ID BIGINT NOT NULL,
     Discord_ID BIGINT NOT NULL,
-    Coins INT NOT NULL
+    Coins INT NOT NULL,
+    FOREIGN KEY (Guild_ID) REFERENCES guildData(Discord_ID)
 );
 
 CREATE UNIQUE INDEX idx_user_unique ON userData(Guild_ID, Discord_ID);
@@ -27,33 +35,20 @@ CREATE TABLE userWins (
     TTT_Bot INT NOT NULL,
     C4 INT NOT NULL,
     C4_Bot INT NOT NULL,
-    Chess INT NOT NULL,
-    Chess_Bot INT NOT NULL,
     FOREIGN KEY (ID) REFERENCES userData(ID)
 );
 
-CREATE TABLE userDaily (
-    ID INT PRIMARY KEY,
-    Task_1 BOOLEAN NOT NULL,
-    Task_2 BOOLEAN NOT NULL,
-    Task_3 BOOLEAN NOT NULL,
-    Task_Bonus BOOLEAN NOT NULL,
+CREATE TABLE userDailyPlay (
+    ID INT NOT NULL,
+    Game VARCHAR(64) NOT NULL,
+    Last_Play_Date VARCHAR(10) NOT NULL,
+    Streak INT NOT NULL,
+    Last_Claim_Date VARCHAR(10) NOT NULL,
+    PRIMARY KEY (ID, Game),
     FOREIGN KEY (ID) REFERENCES userData(ID)
 );
-
-CREATE TABLE guildData (
-    ID INT AUTO_INCREMENT PRIMARY KEY,
-    Discord_ID BIGINT NOT NULL,
-    Premium BOOLEAN NOT NULL,
-    Stats_Channel BIGINT NOT NULL,
-    Language VARCHAR(10) NOT NULL
-);
-
-CREATE INDEX idx_guild_discord_id ON guildData(Discord_ID);
 
 CREATE TABLE globalDaily (
-    Task_1 VARCHAR(255) NOT NULL,
-    Task_2 VARCHAR(255) NOT NULL,
-    Task_3 VARCHAR(255) NOT NULL,
-    Task_Bonus VARCHAR(255) NOT NULL
+    Date VARCHAR(10) PRIMARY KEY,
+    Seed BIGINT NOT NULL
 );

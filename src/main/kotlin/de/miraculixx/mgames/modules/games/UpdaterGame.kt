@@ -1,9 +1,7 @@
 package de.miraculixx.mgames.modules.games
 
-import de.miraculixx.mgames.modules.games.utils.enums.DailyGoals
 import de.miraculixx.mgames.utils.Color
 import de.miraculixx.mgames.utils.api.SQL
-import de.miraculixx.mgames.utils.dailyGoals
 import de.miraculixx.mgames.utils.log
 import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.edit
@@ -33,19 +31,12 @@ object UpdaterGame {
         return CoroutineScope(Dispatchers.Default).launch {
             delay(10.seconds) // Let the system slowly starts
             launch {
-                val result = SQL.call("SELECT * FROM globalDaily")
-                result.next()
-                dailyGoals = buildList {
-                    (1..3).forEach {
-                        add(DailyGoals.valueOf(result.getString("Task_$it")))
-                    }
-                    add(DailyGoals.valueOf(result.getString("Task_Bonus")))
-                }
+                GoalManager.getDailySeed()
                 while (true) {
                     val current = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
                     if (current.hour == 1) {
-                        updateDailyChallenges()
-                        GameManager.shutdown()
+                        updateDailyPlays()
+                        GameManager.cleanupOldInstances(1.hours.inWholeMilliseconds)
                         delay(23.hours)
                     }
                     delay(1.minutes)
@@ -60,21 +51,10 @@ object UpdaterGame {
         }
     }
 
-    suspend fun updateDailyChallenges() {
+    suspend fun updateDailyPlays() {
         "---=---> DAILY UPDATE <---=---".log(Color.YELLOW)
-        val list = DailyGoals.entries.filter { !it.bonus }.toMutableList()
-        val bonus = DailyGoals.entries.filter { it.bonus }
-
-        dailyGoals = buildList {
-            repeat(3) {
-                val newGoal = list.random()
-                add(newGoal)
-                list.remove(newGoal)
-            }
-            add(bonus.random())
-        }
-
-        SQL.updateDailyChallenges(dailyGoals!!.map { it.name })
+        val seed = GoalManager.getDailySeed()
+        " - Daily seed: $seed".log(Color.YELLOW)
     }
 
     private suspend fun updateLeaderboards() = runBlocking {
@@ -100,7 +80,7 @@ object UpdaterGame {
     suspend fun updateLeaderboardGuild(guild: Guild, statsChannel: MessageChannel?) {
         val guildID = guild.idLong
         if (statsChannel == null) {
-            SQL.call("UPDATE guildData SET Stats_Channel=0 WHERE Discord_ID=$guildID")
+            SQL.update("UPDATE guildData SET Stats_Channel=0 WHERE Discord_ID=$guildID")
             " - GUILD REMOVE > $guildID deleted their stats channel".log(Color.YELLOW)
             return
         }
@@ -133,11 +113,6 @@ object UpdaterGame {
                         val resp2 = SQL.call("SELECT Discord_ID, C4, C4_Bot FROM userWins, userData WHERE Guild_ID=$guildID && userData.ID=userWins.ID ORDER BY C4 DESC LIMIT 5")
                         name = "C4 Wins"
                         value = buildField(resp2, true, "C4", "C4_Bot")
-                    }
-                    field {
-                        val resp2 = SQL.call("SELECT Discord_ID, Chess, Chess_Bot FROM userWins, userData WHERE Guild_ID=$guildID && userData.ID=userWins.ID ORDER BY Chess DESC LIMIT 5")
-                        name = "Chess Wins"
-                        value = buildField(resp2, true, "Chess", "Chess_Bot")
                     }
                 }
             )

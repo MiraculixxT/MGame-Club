@@ -1,8 +1,8 @@
 package de.miraculixx.mgames.modules.utils.commands
 
-import de.miraculixx.mgames.config.msg
+import de.miraculixx.mgames.modules.games.GoalManager
+import de.miraculixx.mgames.modules.games.utils.enums.Game
 import de.miraculixx.mgames.utils.api.SQL
-import de.miraculixx.mgames.utils.dailyGoals
 import de.miraculixx.mgames.utils.entities.SlashCommandEvent
 import dev.minn.jda.ktx.messages.Embed
 import kotlinx.datetime.TimeZone
@@ -23,8 +23,8 @@ class CoinsCommand : SlashCommandEvent {
         val guild = it.guild ?: return
         val guildID = guild.idLong
         val userData = SQL.getUser(member.idLong, guild.idLong, daily = true)
-        val dailyData = userData.daily
-        if (dailyData == null) {
+        val dailyData = userData.daily ?: emptyList()
+        if (userData.id == 0L) {
             it.reply("```diff\n- Wir konnten leider keine Daten über den Account finden :(```").setEphemeral(true).queue()
             return
         }
@@ -39,42 +39,30 @@ class CoinsCommand : SlashCommandEvent {
                     "<:blanc:784059217890770964> **↳** `Booster Rank` ${if (member.isBoosting) "<:yes:998195646467145751>" else "<:no:998195603324551323>"}"
             if (ownStats) {
                 field {
-                    name = "\uD83C\uDFAF  ||  DAILY CHALLENGES"
-                    value = "```diff\n" +
-                            "${if (dailyData.c1) "+" else "-"} ${msg(dailyGoals?.getOrNull(0)?.name, guildID)}\n" +
-                            "${if (dailyData.c2) "+" else "-"} ${msg(dailyGoals?.getOrNull(1)?.name, guildID)}\n" +
-                            "${if (dailyData.c3) "+" else "-"} ${msg(dailyGoals?.getOrNull(2)?.name, guildID)}\n" +
-                            "```\n" +
-                            "> New Challenges <t:$timestamp:R>" +
-                            if (!member.isBoosting) "\n*Boost to Unlock Bonus Rewards*" else ""
+                    name = "\uD83C\uDFAF  ||  DAILY PLAYS"
+                    value = buildString {
+                        append("```diff\n")
+                        val today = GoalManager.currentDailyDate().toString()
+                        Game.entries.forEach { game ->
+                            val data = dailyData.firstOrNull { it.game == game.name }
+                            val claimed = data?.lastClaimDate == today
+                            append("${if (claimed) "+" else "-"} ${game.title} | Streak ${data?.streak ?: 0}\n")
+                        }
+                        append("```\n")
+                        append("> New Daily Plays <t:$timestamp:R>")
+                    }
                 }
                 field {
-                    name = "**REWARDS**"
-                    value = "```ini\n" +
-                            "${if (dailyData.c1) "]" else "["}=> ${dailyGoals?.getOrNull(0)?.reward}\n" +
-                            "${if (dailyData.c1) "]" else "["}=> ${dailyGoals?.getOrNull(1)?.reward}\n" +
-                            "${if (dailyData.c1) "]" else "["}=> ${dailyGoals?.getOrNull(2)?.reward}\n" +
-                            "```"
+                    name = "**DAILY REWARDS**"
+                    value = buildString {
+                        append("```ini\n")
+                        Game.entries.forEach { game -> append("${game.title} => ${game.coinValue * 10}\n") }
+                        append("```")
+                    }
                 }
             }
         }
 
-        if (member.isBoosting && ownStats)
-            it.replyEmbeds(defaultEmbed, Embed {
-                color = 0xb026d3
-                field {
-                    name = "<:booster:981486698431127602> ||  BONUS CHALLENGE"
-                    value = "```diff\n" +
-                            "${if (dailyData.bonus) "+" else "-"} ${msg(dailyGoals?.getOrNull(3)?.name, guildID)}\n" +
-                            "```"
-                }
-                field {
-                    name = "**REWARDS**"
-                    value = "```ini\n" +
-                            "[=> ${dailyGoals?.get(3)?.reward}\n" +
-                            "```"
-                }
-            }).queue()
-        else it.replyEmbeds(defaultEmbed).queue()
+        it.replyEmbeds(defaultEmbed).queue()
     }
 }

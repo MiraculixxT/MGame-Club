@@ -1,9 +1,7 @@
 package de.miraculixx.mgames.modules.games
 
 import de.miraculixx.mgames.config.msg
-import de.miraculixx.mgames.modules.games.chess.ChessGame
 import de.miraculixx.mgames.modules.games.connectFour.C4Game
-import de.miraculixx.mgames.modules.games.quickMath.QuickMathCommand
 import de.miraculixx.mgames.modules.games.tictactoe.TTTGame
 import de.miraculixx.mgames.modules.games.utils.FieldsTwoPlayer
 import de.miraculixx.mgames.modules.games.utils.enums.Game
@@ -23,7 +21,7 @@ import kotlin.collections.hashMapOf
 object GameManager {
     //Running Games
     // HashMap<GuildID, Map<GameType, HashMap<GameID, GameInstance>>>
-    private val guilds = HashMap<Long, Map<Game, HashMap<UUID, SimpleGame>>>()
+    private val guilds = HashMap<Long, MutableMap<Game, HashMap<UUID, SimpleGame>>>()
 
     suspend fun searchGame(hook: InteractionHook, member: Member, gameTag: String, gameName: String) {
         hook.editOriginal(
@@ -45,30 +43,23 @@ object GameManager {
         ).queue()
     }
 
-    suspend fun newGameVersus(game: Game, guild: Guild, members: Pair<String, String>, channelID: Long, botLevel: Int = 0) {
+    suspend fun newGameVersus(
+        game: Game,
+        guild: Guild,
+        members: Pair<String, String>,
+        channelID: Long,
+        botLevel: Int = 0,
+        daily: Boolean = false,
+        seed: Long? = null
+    ) {
         val gameMap = getGameMap(guild, game)
         val member1 = guild.retrieveMemberById(members.first).await() ?: return
         val member2 = guild.retrieveMemberById(members.second).await() ?: return
         val uuid = UUID.randomUUID()
-        GoalManager.registerNewGame(game, false, member1.idLong, guild.idLong)
-        GoalManager.registerNewGame(game, false, member2.idLong, guild.idLong)
 
         gameMap[uuid] = when (game) {
-            Game.TIC_TAC_TOE -> TTTGame(member1, member2, uuid, channelID, guild, botLevel)
-            Game.CONNECT_4 -> C4Game(member1, member2, uuid, guild, channelID, botLevel)
-            Game.CHESS -> ChessGame(member1, member2, uuid, guild, channelID)
-            else -> return
-        }
-    }
-
-    suspend fun newGameSolo(game: Game, guild: Guild, member: String, channelID: Long, botLevel: Int = 0) {
-        val gameMap = getGameMap(guild, game)
-        val member = guild.retrieveMemberById(member).await() ?: return
-        val uuid = UUID.randomUUID()
-        GoalManager.registerNewGame(game, false, member.idLong, guild.idLong)
-
-        gameMap[uuid] = when (game) {
-            Game.QUICK_MATH -> QuickMathCommand()
+            Game.TIC_TAC_TOE -> TTTGame(member1, member2, uuid, channelID, guild, botLevel, daily, seed)
+            Game.CONNECT_4 -> C4Game(member1, member2, uuid, guild, channelID, botLevel, daily, seed)
             else -> return
         }
     }
@@ -83,18 +74,32 @@ object GameManager {
 
     private fun getGameMap(guild: Guild, game: Game): HashMap<UUID, SimpleGame> {
         val mGuild = guilds[guild.idLong] ?: run {
-            val emptyGuild = buildMap { Game.entries.forEach { put(it, hashMapOf<UUID, SimpleGame>()) } }
+            val emptyGuild = Game.entries.associateWith { hashMapOf<UUID, SimpleGame>() }.toMutableMap()
             guilds[guild.idLong] = emptyGuild
             emptyGuild
         }
-        return mGuild[game] ?: hashMapOf()
+        return mGuild.getOrPut(game) { hashMapOf() }
+    }
+
+    suspend fun cleanupOldInstances(maxAgeMillis: Long) {
+        val now = System.currentTimeMillis()
+        "---=---> GAME CLEANUP <---=---".log(Color.YELLOW)
+        guilds.forEach { (guild, data) ->
+            data.forEach { (type, games) ->
+                val before = games.size
+                games.entries.removeIf { (_, instance) -> now - instance.startedAt > maxAgeMillis }
+                val removed = before - games.size
+                if (removed > 0) " - Guild $guild removed $removed stale ${type.title} instance(s)".log(Color.YELLOW)
+            }
+        }
+        "---=---=---=---=---=---=---=---".log(Color.YELLOW)
     }
 
     suspend fun shutdown() {
         "---=---> GAME MANAGER <---=---".log(Color.YELLOW)
         guilds.forEach { (guild, data) ->
             data.forEach { (type, games) ->
-                games.forEach { (uuid, instance) ->
+                games.toMap().forEach { (uuid, instance) ->
                     instance.setWinner(FieldsTwoPlayer.EMPTY)
                     removeGame(guild, type, uuid)
                 }

@@ -21,20 +21,6 @@ commandGameQueue: "sucht nach einem Gegner zum %GAME% spielen!\n> Bist du bereit
 commandGameRequest: "Du wurdest herausgefordert zu einem %GAME% Match von %MEMBER%!\n> Bist du bereit für das Spiel? Klicke auf `Accept`"
 
 #
-# DAILY REWARDS Translations
-#
-WIN_C4_BOT: "Gewinne ein 4-Gewinnt Bot-Match"
-WIN_C4_USER: "Gewinne ein 4-Gewinnt Match"
-WIN_TTT_BOT: "Gewinne ein Tic-Tac-Toe Bot-Match"
-WIN_TTT_USER: "Gewinne ein Tic-Tac-Toe Match"
-WIN_CHESS_USER: "Gewinne ein Schach Match"
-TIMEOUT_CHESS: "Verliere Schach an Zeit"
-REPLAY: "Spiele eine Revanche"
-CHANGE_C4_SKIN: "Ändere deinen C-4 Skin"
-DRAW_C4: "Draw ein 4-Gewinnt Match"
-DRAW_TTT: "Draw ein Tic-Tac-Toe Match"
-
-#
 # GLOBAL Game Translations
 #
 draw: "Unentschieden"
@@ -45,18 +31,6 @@ notYourMove: "- Du bist gerade nicht am Zug!"
 notPartOfMatch: "- Du bist kein Teil dieser Partie!\nStarte eine eigene über /%GAME% <option>"
 column: "Spalte"
 selfDelete: "Der Spiel-Bereich löscht sich in **30s**"
-
-#
-# CHESS Game Translation
-#
-chessEmptyField: "- Auf dem ausgewählte Feld steht keine deiner Figuren!\n- Du bewegst die %COLOR% Figuren"
-chessChooseField: "Wähle ein Feld aus, auf welches du deine Figur setzen möchtest!"
-chessNoMoves: "- Diese Figur hat keine Bewegungsmöglichkeiten!"
-chessInvalidMove: "- Dieser Zug ist nicht möglich!\n- Dein König stände dadurch im Schach(matt)"
-chessKingCheck: "**steht im Schach**"
-chessMoves: "Mögliche Züge"
-chessWhite: "weißen"
-chessBlack: "schwarzen"
 
 #
 # SYSTEM Translations

@@ -1,7 +1,5 @@
 package de.miraculixx.mgames.modules.games.connectFour
 
-import de.miraculixx.mgames.modules.games.GoalManager
-import de.miraculixx.mgames.modules.games.utils.enums.Game
 import de.miraculixx.mgames.utils.api.SQL
 import de.miraculixx.mgames.utils.entities.DropDownEvent
 import net.dv8tion.jda.api.entities.Member
@@ -64,7 +62,6 @@ class C4DropDown : DropDownEvent {
             if (secondary) "C4_S" else "C4_P",
             emote
         )
-        GoalManager.registerSkinChange(Game.CONNECT_4, id, guildID)
         hook.editOriginal("✅ **|| Skin Erfolgreich Geändert**\nDu nutzt nun $emote als 4 Gewinnt Spielstein").queue()
     }
 }
