@@ -57,7 +57,7 @@ object QuickMath : SlashCommandEvent, ModalEvent, ButtonEvent {
             label(challenge.hiddenQuestion) {
                 child = TextInput(ANSWER_INPUT_ID, TextInputStyle.SHORT, requiredLength = 1..20, placeholder = "Antwort als ganze Zahl")
             }
-            components += TextDisplay("__Spickzettel__\n- * % vor + - (Punkt vor Strich)\n- % ist Rest einer Division (modulo)\n- Nutze das Textfeld zum Zwischenspeichern")
+            components += TextDisplay("__Spickzettel__\n- % * vor + - (Punkt vor Strich)\n- % ist Rest einer Division (modulo)\n- Nutze das Textfeld zum Zwischenspeichern")
         }).queue()
     }
 
