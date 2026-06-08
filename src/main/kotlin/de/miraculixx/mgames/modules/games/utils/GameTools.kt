@@ -42,7 +42,7 @@ class GameTools(private val gameTag: String, private val gameName: String, priva
                     else -> 1
                 }
                 it.reply(msg("commandStartBotGame", discordID).replace("%DIFF%", option)).setEphemeral(true).queue()
-                GameManager.newGame(game, it.guild ?: return, listOf(member.id, it.jda.selfUser.id), it.channel.idLong, level)
+                GameManager.newGameVersus(game, it.guild ?: return, member.id to it.jda.selfUser.id, it.channel.idLong, level)
             }
         }
     }
@@ -62,14 +62,14 @@ class GameTools(private val gameTag: String, private val gameName: String, priva
             "R" -> {
                 GoalManager.registerNewGame(game, true, member.idLong, guildID)
                 it.message.delete().queue()
-                GameManager.newGame(game, guild, listOf(options[1], options[2]), (it.channel as ThreadChannel).parentMessageChannel.idLong)
+                GameManager.newGameVersus(game, guild, options[1] to options[2], (it.channel as ThreadChannel).parentMessageChannel.idLong)
             }
             "YES" -> {
                 if (options[2] != member.id)
                     it.reply(msgDiff(msg("commandCannotAccept", guildID))).setEphemeral(true).queue()
                 else {
                     it.message.delete().queue()
-                    GameManager.newGame(game, guild, listOf(options[1], options[2]), it.channel.idLong)
+                    GameManager.newGameVersus(game, guild, options[1] to options[2], it.channel.idLong)
                 }
             }
             "NO" -> {
@@ -85,7 +85,7 @@ class GameTools(private val gameTag: String, private val gameName: String, priva
             else {
                 it.message.delete().queue()
                 it.reply(msg("commandStartGame", guildID)).setEphemeral(true).queue()
-                GameManager.newGame(game, guild, listOf(options[1], member.id), it.channel.idLong)
+                GameManager.newGameVersus(game, guild, listOf(options[1], member.id), it.channel.idLong)
             }
             "CANCEL" -> if (options[1] != member.id)
                 it.reply(msgDiff(msg("commandCannotDeny", guildID))).setEphemeral(true).queue()

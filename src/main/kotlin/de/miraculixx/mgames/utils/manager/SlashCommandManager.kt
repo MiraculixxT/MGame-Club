@@ -3,6 +3,7 @@ package de.miraculixx.mgames.utils.manager
 import de.miraculixx.mgames.Main
 import de.miraculixx.mgames.modules.games.chess.ChessCommand
 import de.miraculixx.mgames.modules.games.connectFour.C4Command
+import de.miraculixx.mgames.modules.games.quickMath.QuickMathCommand
 import de.miraculixx.mgames.modules.games.tictactoe.TTTCommand
 import de.miraculixx.mgames.modules.trivia.TriviaCategory
 import de.miraculixx.mgames.modules.trivia.TriviaCommand
@@ -26,6 +27,7 @@ object SlashCommandManager {
         "tictactoe" to TTTCommand(),
         "connect-4" to C4Command(),
         "chess" to ChessCommand(),
+        "quick-math" to QuickMathCommand,
         "setup" to SetupCommand(),
         "admin" to AdminCommand(),
         "coins" to CoinsCommand(),
@@ -80,6 +82,7 @@ object SlashCommandManager {
                     subcommand("skin", "Choose a Skin for your Chip")
                      */
             },
+            Command("quick-math", "Solve a quick math challenge"),
 
             Command("coins", "Inspect your personal stats") {
                 addOption(OptionType.USER, "user", "Inspect the stats from an other User")

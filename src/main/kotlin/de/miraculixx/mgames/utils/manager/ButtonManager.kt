@@ -4,6 +4,7 @@ import de.miraculixx.mgames.modules.games.chess.ChessButton
 import de.miraculixx.mgames.modules.games.connectFour.C4Button
 import de.miraculixx.mgames.modules.games.idle.ButtonLoadBuildings
 import de.miraculixx.mgames.modules.games.idle.ButtonLoadUpgrades
+import de.miraculixx.mgames.modules.games.quickMath.QuickMathCommand
 import de.miraculixx.mgames.modules.games.tictactoe.TTTListener
 import de.miraculixx.mgames.modules.trivia.TriviaButton
 import dev.minn.jda.ktx.events.listener
@@ -17,6 +18,7 @@ object ButtonManager {
         "GAME_TTT" to TTTListener(),
         "GAME_4G" to C4Button(),
         "GAME_CHESS" to ChessButton(),
+        "22142abbf1c74da187fdabd4b59d4456" to QuickMathCommand,
         "TRIVIA" to TriviaButton()
     )
 
