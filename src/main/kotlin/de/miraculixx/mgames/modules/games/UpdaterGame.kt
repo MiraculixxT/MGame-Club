@@ -1,5 +1,6 @@
 package de.miraculixx.mgames.modules.games
 
+import de.miraculixx.mgames.modules.games.utils.enums.Game
 import de.miraculixx.mgames.utils.Color
 import de.miraculixx.mgames.utils.api.SQL
 import de.miraculixx.mgames.utils.log
@@ -105,14 +106,22 @@ object UpdaterGame {
                 Embed {
                     color = 0xc29113
                     field {
-                        val resp2 = SQL.call("SELECT Discord_ID, TTT, TTT_Bot FROM userWins, userData WHERE Guild_ID=$guildID && userData.ID=userWins.ID ORDER BY TTT DESC LIMIT 5")
+                        val resp2 = SQL.call(
+                            "SELECT userData.Discord_ID, COALESCE(SUM(userStats.Wins), 0) AS Wins, COALESCE(SUM(userStats.Losses), 0) AS Losses " +
+                                "FROM userData LEFT JOIN userStats ON userStats.Discord_ID=userData.Discord_ID && userStats.Game_ID=${Game.TIC_TAC_TOE.id} " +
+                                "WHERE Guild_ID=$guildID GROUP BY userData.Discord_ID ORDER BY Wins DESC LIMIT 5"
+                        )
                         name = "TTT Wins"
-                        value = buildField(resp2, false, "TTT", "TTT_Bot")
+                        value = buildField(resp2, false, "Wins", "Losses")
                     }
                     field {
-                        val resp2 = SQL.call("SELECT Discord_ID, C4, C4_Bot FROM userWins, userData WHERE Guild_ID=$guildID && userData.ID=userWins.ID ORDER BY C4 DESC LIMIT 5")
+                        val resp2 = SQL.call(
+                            "SELECT userData.Discord_ID, COALESCE(SUM(userStats.Wins), 0) AS Wins, COALESCE(SUM(userStats.Losses), 0) AS Losses " +
+                                "FROM userData LEFT JOIN userStats ON userStats.Discord_ID=userData.Discord_ID && userStats.Game_ID=${Game.CONNECT_4.id} " +
+                                "WHERE Guild_ID=$guildID GROUP BY userData.Discord_ID ORDER BY Wins DESC LIMIT 5"
+                        )
                         name = "C4 Wins"
-                        value = buildField(resp2, true, "C4", "C4_Bot")
+                        value = buildField(resp2, true, "Wins", "Losses")
                     }
                 }
             )

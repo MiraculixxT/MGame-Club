@@ -9,6 +9,7 @@ import de.miraculixx.mgames.modules.games.GoalManager
 import de.miraculixx.mgames.modules.games.utils.FieldsTwoPlayer
 import de.miraculixx.mgames.modules.games.utils.SimpleGame
 import de.miraculixx.mgames.modules.games.utils.enums.Game
+import de.miraculixx.mgames.modules.games.utils.enums.GameMode
 import de.miraculixx.mgames.utils.api.SQL
 import de.miraculixx.mgames.utils.log
 import dev.minn.jda.ktx.messages.Embed
@@ -234,16 +235,38 @@ class C4Game(
                         }
 
                         FieldsTwoPlayer.PLAYER_1 -> {
-                            GoalManager.registerWin(Game.CONNECT_4, bot != null, member1.idLong, guildID, difficultyMultiplier)
+                            GoalManager.registerGameResult(
+                                Game.CONNECT_4,
+                                if (bot != null) GameMode.BOT else GameMode.USER,
+                                winnerSnowflake = member1.idLong,
+                                loserSnowflake = if (bot == null) member2.idLong else null,
+                                guildSnowflake = guildID,
+                                difficultyMultiplier = difficultyMultiplier
+                            )
                             if (daily) GoalManager.registerDailyCompletion(Game.CONNECT_4, member1.idLong, guildID, difficultyMultiplier)
                             "$member1Emote ${member1.asMention} ${msg("win", guildID)}"
                         }
 
                         FieldsTwoPlayer.PLAYER_2 -> {
                             if (bot == null) {
-                                GoalManager.registerWin(Game.CONNECT_4, false, member2.idLong, guildID, difficultyMultiplier)
-                            } else if (daily) {
-                                GoalManager.registerDailyCompletion(Game.CONNECT_4, member1.idLong, guildID, difficultyMultiplier)
+                                GoalManager.registerGameResult(
+                                    Game.CONNECT_4,
+                                    GameMode.USER,
+                                    winnerSnowflake = member2.idLong,
+                                    loserSnowflake = member1.idLong,
+                                    guildSnowflake = guildID,
+                                    difficultyMultiplier = difficultyMultiplier
+                                )
+                            } else {
+                                GoalManager.registerGameResult(
+                                    Game.CONNECT_4,
+                                    GameMode.BOT,
+                                    winnerSnowflake = null,
+                                    loserSnowflake = member1.idLong,
+                                    guildSnowflake = guildID,
+                                    difficultyMultiplier = difficultyMultiplier
+                                )
+                                if (daily) GoalManager.registerDailyCompletion(Game.CONNECT_4, member1.idLong, guildID, difficultyMultiplier)
                             }
                             "$member2Emote ${member2.asMention} ${msg("win", guildID)}"
                         }

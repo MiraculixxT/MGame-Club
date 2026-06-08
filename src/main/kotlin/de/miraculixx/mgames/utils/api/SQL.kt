@@ -1,6 +1,8 @@
 package de.miraculixx.mgames.utils.api
 
 import de.miraculixx.mgames.config.ConfigManager
+import de.miraculixx.mgames.modules.games.utils.enums.Game
+import de.miraculixx.mgames.modules.games.utils.enums.GameMode
 import de.miraculixx.mgames.utils.Color
 import de.miraculixx.mgames.utils.error
 import de.miraculixx.mgames.utils.log
@@ -60,11 +62,9 @@ object SQL {
 
         // Create Empty Data Rows to simplify future calls
         update("INSERT INTO userEmotesActive VALUES ($userID, '\uD83D\uDD34', '\uD83D\uDFE1')")
-        update("INSERT INTO userWins VALUES ($userID, 0, 0, 0, 0)")
         return UserData(
             userSnowflake, 0,
             UserEmote(emptyMap(), "\uD83D\uDD34", "\uD83D\uDFE1"),
-            UserWins(0, 0, 0, 0),
             emptyList()
         )
     }
@@ -80,7 +80,7 @@ object SQL {
         else 0
     }
 
-    suspend fun getUser(userSnowflake: Long, guildSnowflake: Long, emotes: Boolean = false, wins: Boolean = false, daily: Boolean = false): UserData {
+    suspend fun getUser(userSnowflake: Long, guildSnowflake: Long, emotes: Boolean = false, daily: Boolean = false): UserData {
         val result = call("SELECT * FROM userData WHERE Guild_ID=$guildSnowflake && Discord_ID=$userSnowflake")
         if (!result.next()) return createUser(userSnowflake, guildSnowflake)
         return UserData(
@@ -106,16 +106,6 @@ object SQL {
                     emoteMap,
                     activeEmotes.getString("C4_P"),
                     activeEmotes.getString("C4_S")
-                )
-            } else null,
-            if (wins) {
-                val winData = call("SELECT * FROM userWins, userData WHERE Guild_ID=$guildSnowflake && Discord_ID=$userSnowflake && userWins.ID=userData.ID")
-                winData.next()
-                UserWins(
-                    winData.getInt("TTT"),
-                    winData.getInt("TTT_Bot"),
-                    winData.getInt("C4"),
-                    winData.getInt("C4_Bot"),
                 )
             } else null,
             if (daily) getDailyPlays(result.getInt("ID")) else null
@@ -146,13 +136,15 @@ object SQL {
         update("UPDATE userEmotesActive SET $type='$newEmote' WHERE ID=$id")
     }
 
-    suspend fun addWin(userSnowflake: Long, guildSnowflake: Long, type: String) {
-        var id = getUserID(userSnowflake, guildSnowflake)
-        if (id == 0) {
-            createUser(userSnowflake, guildSnowflake)
-            id = getUserID(userSnowflake, guildSnowflake)
-        }
-        update("UPDATE userWins SET $type=$type+1 WHERE ID=$id")
+    suspend fun addGameStats(userSnowflake: Long, game: Game, mode: GameMode, difficulty: Int, won: Boolean) {
+        val safeDifficulty = difficulty.coerceIn(0, 3)
+        val wins = if (won) 1 else 0
+        val losses = if (won) 0 else 1
+        update(
+            "INSERT INTO userStats (Discord_ID, Game_ID, Mode_ID, Difficulty, Wins, Losses) " +
+                "VALUES ($userSnowflake, ${game.id}, ${mode.id}, $safeDifficulty, $wins, $losses) " +
+                "ON DUPLICATE KEY UPDATE Wins=Wins+$wins, Losses=Losses+$losses"
+        )
     }
 
     suspend fun addCoins(userSnowflake: Long, guildSnowflake: Long, amount: Int) {
@@ -236,14 +228,6 @@ object SQL {
      */
     data class UserEmote(val owned: Map<String, String>, val c4: String, val c42: String)
 
-    /**
-     * @param ttt Wins in TicTacToe - User
-     * @param tttBot Wins in TicTacToe - Bot
-     * @param c4 Wins in Connect 4 - User
-     * @param c4Bot Wins in Connect 4 - Bot
-     */
-    data class UserWins(val ttt: Int, val tttBot: Int, val c4: Int, val c4Bot: Int)
-
     data class UserDailyPlay(val game: String, val lastPlayDate: String, val streak: Int, val lastClaimDate: String)
 
     data class DailyPlayResult(val claimed: Boolean, val streak: Int, val reward: Int)
@@ -252,9 +236,8 @@ object SQL {
      * @param id Discord User ID
      * @param coins Amount of Coins
      * @param emotes All Emote Information
-     * @param wins All Wins Information
      */
-    data class UserData(val id: Long, val coins: Int, val emotes: UserEmote?, val wins: UserWins?, val daily: List<UserDailyPlay>?)
+    data class UserData(val id: Long, val coins: Int, val emotes: UserEmote?, val daily: List<UserDailyPlay>?)
 
     /**
      * @param id Discord Guild ID

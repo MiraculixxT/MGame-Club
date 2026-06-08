@@ -1,6 +1,7 @@
 package de.miraculixx.mgames.modules.games
 
 import de.miraculixx.mgames.modules.games.utils.enums.Game
+import de.miraculixx.mgames.modules.games.utils.enums.GameMode
 import de.miraculixx.mgames.utils.cachedDailyDate
 import de.miraculixx.mgames.utils.cachedDailySeed
 import de.miraculixx.mgames.utils.api.SQL
@@ -14,15 +15,22 @@ import kotlin.time.ExperimentalTime
 
 @OptIn(ExperimentalTime::class)
 object GoalManager {
-    suspend fun registerWin(
+    suspend fun registerGameResult(
         game: Game,
-        bot: Boolean,
-        userSnowflake: Long,
+        mode: GameMode,
+        winnerSnowflake: Long?,
+        loserSnowflake: Long?,
         guildSnowflake: Long,
         difficultyMultiplier: Int = 1
     ) {
-        SQL.addWin(userSnowflake, guildSnowflake, game.short + if (bot) "_Bot" else "")
-        SQL.addCoins(userSnowflake, guildSnowflake, game.coinValue * difficultyMultiplier.coerceIn(1, 3))
+        val difficulty = if (mode == GameMode.BOT) difficultyMultiplier.coerceIn(1, 3) else 0
+        winnerSnowflake?.let {
+            SQL.addGameStats(it, game, mode, difficulty, won = true)
+            SQL.addCoins(it, guildSnowflake, game.coinValue * difficultyMultiplier.coerceIn(1, 3))
+        }
+        loserSnowflake?.let {
+            SQL.addGameStats(it, game, mode, difficulty, won = false)
+        }
     }
 
     suspend fun registerDailyCompletion(

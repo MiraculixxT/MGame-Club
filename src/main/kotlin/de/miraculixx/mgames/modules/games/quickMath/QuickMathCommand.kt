@@ -2,7 +2,7 @@ package de.miraculixx.mgames.modules.games.quickMath
 
 import de.miraculixx.mgames.modules.games.GoalManager
 import de.miraculixx.mgames.modules.games.utils.enums.Game
-import de.miraculixx.mgames.utils.api.SQL
+import de.miraculixx.mgames.modules.games.utils.enums.GameMode
 import de.miraculixx.mgames.utils.entities.ButtonEvent
 import de.miraculixx.mgames.utils.entities.ModalEvent
 import de.miraculixx.mgames.utils.entities.SlashCommandEvent
@@ -82,12 +82,17 @@ object QuickMathCommand : SlashCommandEvent, ModalEvent, ButtonEvent {
         val elapsedMs = System.currentTimeMillis() - startedAt
         val elapsed = "%.2f".format(elapsedMs / 1000.0)
         val success = answer == challenge.result
+        val guildId = it.guild?.idLong ?: return
+        GoalManager.registerGameResult(
+            Game.QUICK_MATH,
+            GameMode.SOLO,
+            winnerSnowflake = if (success) targetUserId else null,
+            loserSnowflake = if (success) null else targetUserId,
+            guildSnowflake = guildId
+        )
         val dailyResult = if (success && daily) {
-            GoalManager.registerDailyCompletion(Game.QUICK_MATH, targetUserId, it.guild?.idLong ?: return, 1)
+            GoalManager.registerDailyCompletion(Game.QUICK_MATH, targetUserId, guildId, 1)
         } else null
-        if (success && !daily) {
-            SQL.addCoins(targetUserId, it.guild?.idLong ?: return, Game.QUICK_MATH.coinValue)
-        }
 
         it.replyEmbeds(buildResultEmbed(challenge, answerRaw, elapsed, success, targetUserId, dailyResult?.reward ?: 0, dailyResult?.streak))
             .addActionRow(Button.of(ButtonStyle.SUCCESS, PLAY_BUTTON_ID, "PLAY"))

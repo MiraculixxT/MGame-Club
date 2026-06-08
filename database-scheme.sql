@@ -29,13 +29,15 @@ CREATE TABLE userEmotesActive (
     FOREIGN KEY (ID) REFERENCES userData(ID)
 );
 
-CREATE TABLE userWins (
-    ID INT PRIMARY KEY,
-    TTT INT NOT NULL,
-    TTT_Bot INT NOT NULL,
-    C4 INT NOT NULL,
-    C4_Bot INT NOT NULL,
-    FOREIGN KEY (ID) REFERENCES userData(ID)
+CREATE TABLE userStats (
+    Discord_ID BIGINT NOT NULL,
+    Game_ID TINYINT UNSIGNED NOT NULL,
+    Mode_ID TINYINT UNSIGNED NOT NULL,
+    Difficulty TINYINT UNSIGNED NOT NULL,
+    Wins INT UNSIGNED NOT NULL,
+    Losses INT UNSIGNED NOT NULL,
+    PRIMARY KEY (Discord_ID, Game_ID, Mode_ID, Difficulty),
+    INDEX idx_stats_leaderboard (Game_ID, Mode_ID, Difficulty, Wins, Losses)
 );
 
 CREATE TABLE userDailyPlay (
