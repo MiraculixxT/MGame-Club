@@ -33,6 +33,7 @@ import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.events.interaction.component.GenericComponentInteractionCreateEvent
 import net.dv8tion.jda.api.components.actionrow.ActionRow
 import net.dv8tion.jda.api.components.buttons.Button
+import net.dv8tion.jda.api.components.buttons.ButtonStyle
 import java.util.*
 import kotlin.random.Random
 import kotlin.time.Duration.Companion.seconds
@@ -72,7 +73,12 @@ class C4Game(
         return listOf(
             Container {
                 val text = TextDisplay("## ${Icons.connect4} || ${msg("connect4", guildID)}")
-                if (done) section(button(""), listOf(text))
+                if (done) {
+                    section(
+                        button("GAME_4G_R_${member1.id}_${member2.id}_${bot?.level ?: 0}", Icons.play, style = ButtonStyle.PRIMARY),
+                        listOf(text)
+                    )
+                }
                 else components += text
                 separator()
                 text("$member1Emote - ${member1.asMention}\n" +
@@ -187,7 +193,7 @@ class C4Game(
             event?.reply(msgDiff(msg("notYourMove", guildID)))?.setEphemeral(true)?.queue()
             return
         }
-        event?.editMessage(message.contentRaw + " ")?.await()
+        event?.deferEdit()?.await()
         sendUpdate(row.digitToInt(), column.digitToInt(), interactor)
     }
 
@@ -198,6 +204,7 @@ class C4Game(
     }
 
     private suspend fun botMove() {
+        delay(1.seconds)
         val nextColumn = bot?.getNextMove(fields) ?: return
         val columns = (0..6).map { i -> (0..5).map { j -> fields[j][i] } }
         val column = columns[nextColumn]
@@ -299,7 +306,6 @@ class C4Game(
             delay(30.seconds)
             thread.delete().queue()
         } else if (bot != null && !whoPlays) {
-            delay(1.seconds)
             botMove()
         }
     }
