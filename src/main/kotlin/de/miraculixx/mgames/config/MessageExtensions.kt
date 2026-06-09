@@ -13,7 +13,32 @@ fun msg(key: String?, id: Long, args: Map<String, String> = emptyMap()): String 
     return LanguageManager.message(key, id, args)
 }
 
-fun msgDiff(text: String) = "```diff\n$text```"
+fun msgDiff(text: String) = msgAnsi(Ansi.textRed + Ansi.bold + text)
+fun msgAnsi(text: String) = "```ansi\n${text}```"
+
+object Ansi {
+    const val reset = "\u001B[0m"
+    const val bold = "\u001B[1m"
+    const val underlined = "\u001B[4m"
+
+    const val textGray = "\u001B[30m"
+    const val textRed = "\u001B[31m"
+    const val textGreen = "\u001B[32m"
+    const val textYellow = "\u001B[33m"
+    const val textBlue = "\u001B[34m"
+    const val textPink = "\u001B[35m"
+    const val textCyan = "\u001B[36m"
+    const val textWhite = "\u001B[37m"
+
+    const val bgFireflyDarkBlue = "\u001B[40m"
+    const val bgOrange = "\u001B[41m"
+    const val bgMarbleBlue = "\u001B[42m"
+    const val bgGreyishTurquoise = "\u001B[43m"
+    const val bgGray = "\u001B[44m"
+    const val bgIndigo = "\u001B[45m"
+    const val bgLightGray = "\u001B[46m"
+    const val bgWhite = "\u001B[47m"
+}
 
 object LanguageManager {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
