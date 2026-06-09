@@ -51,7 +51,7 @@ class TriviaButton : ButtonEvent {
         val success = answer == "1"
         val isFalse = !success
         val guildID = it.guild?.idLong ?: return
-        if (daily && GoalManager.hasCompletedDaily(Game.TRIVIA, it.user.idLong, guildID)) {
+        if (daily && GoalManager.hasCompletedDaily(Game.TRIVIA, it.user.idLong)) {
             it.reply_("```diff\n- Daily Trivia wurde heute bereits abgeschlossen.```", ephemeral = true).queue()
             return
         }

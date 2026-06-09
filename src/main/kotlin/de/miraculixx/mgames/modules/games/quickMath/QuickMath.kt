@@ -37,7 +37,7 @@ object QuickMath : SlashCommandEvent, ModalEvent, ButtonEvent {
         val daily = it.subcommandName == "daily"
         val guildId = it.guild?.idLong
         val difficulty = if (daily) MathDifficulty.MEDIUM else it.getOption("difficulty")?.asString.toMathDifficulty()
-        if (daily && guildId != null && GoalManager.hasCompletedDaily(Game.QUICK_MATH, it.user.idLong, guildId)) {
+        if (daily && guildId != null && GoalManager.hasCompletedDaily(Game.QUICK_MATH, it.user.idLong)) {
             it.reply("```diff\n- Daily Quick Math wurde heute bereits abgeschlossen.```").setEphemeral(true).queue()
             return
         }
@@ -90,7 +90,7 @@ object QuickMath : SlashCommandEvent, ModalEvent, ButtonEvent {
             return
         }
         val guildId = it.guild?.idLong ?: return
-        if (daily && GoalManager.hasCompletedDaily(Game.QUICK_MATH, targetUserId, guildId)) {
+        if (daily && GoalManager.hasCompletedDaily(Game.QUICK_MATH, targetUserId)) {
             it.reply("```diff\n- Daily Quick Math wurde heute bereits abgeschlossen.```").setEphemeral(true).queue()
             return
         }

@@ -23,7 +23,7 @@ class TriviaCommand : SlashCommandEvent {
         val userID = user.id
         val guildID = it.guild?.idLong ?: return
 
-        if (subcommand == "daily" && GoalManager.hasCompletedDaily(Game.TRIVIA, user.idLong, guildID)) {
+        if (subcommand == "daily" && GoalManager.hasCompletedDaily(Game.TRIVIA, user.idLong)) {
             it.reply("```diff\n- Daily Trivia wurde heute bereits abgeschlossen.```").setEphemeral(true).queue()
             return
         }

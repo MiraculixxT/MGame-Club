@@ -113,7 +113,7 @@ object SQL {
                     activeEmotes.getString("C4_S")
                 )
             } else null,
-            if (daily) getDailyPlays(result.getInt("ID")) else null
+            if (daily) getDailyPlays(userSnowflake) else null
         )
     }
 
@@ -207,14 +207,12 @@ object SQL {
         previousDate: String,
         reward: Int
     ): DailyPlayResult {
-        var id = getUserID(userSnowflake, guildSnowflake)
-        if (id == 0) {
+        if (getUserID(userSnowflake, guildSnowflake) == 0) {
             createUser(userSnowflake, guildSnowflake)
-            id = getUserID(userSnowflake, guildSnowflake)
         }
 
         val escapedGame = game.replace("'", "''")
-        val existing = call("SELECT Last_Play_Date, Streak FROM userDailyPlay WHERE ID=$id && Game='$escapedGame'")
+        val existing = call("SELECT Last_Play_Date, Streak FROM userDailyPlay WHERE Discord_ID=$userSnowflake && Game='$escapedGame'")
         if (existing.next()) {
             val lastPlay = existing.getString("Last_Play_Date")
             if (lastPlay == date) {
@@ -225,28 +223,25 @@ object SQL {
             val nextStreak = if (lastPlay == previousDate) previousStreak + 1 else 1
             update(
                 "UPDATE userDailyPlay SET Last_Play_Date='$date', Streak=$nextStreak " +
-                    "WHERE ID=$id && Game='$escapedGame'"
+                    "WHERE Discord_ID=$userSnowflake && Game='$escapedGame'"
             )
             addCoins(userSnowflake, guildSnowflake, reward)
             return DailyPlayResult(true, nextStreak, reward)
         }
 
-        update("INSERT INTO userDailyPlay (ID, Game, Last_Play_Date, Streak) VALUES ($id, '$escapedGame', '$date', 1)")
+        update("INSERT INTO userDailyPlay (Discord_ID, Game, Last_Play_Date, Streak) VALUES ($userSnowflake, '$escapedGame', '$date', 1)")
         addCoins(userSnowflake, guildSnowflake, reward)
         return DailyPlayResult(true, 1, reward)
     }
 
-    suspend fun hasCompletedDailyPlay(userSnowflake: Long, guildSnowflake: Long, game: String, date: String): Boolean {
-        val id = getUserID(userSnowflake, guildSnowflake)
-        if (id == 0) return false
-
+    suspend fun hasCompletedDailyPlay(userSnowflake: Long, game: String, date: String): Boolean {
         val escapedGame = game.replace("'", "''")
-        val existing = call("SELECT Last_Play_Date FROM userDailyPlay WHERE ID=$id && Game='$escapedGame'")
+        val existing = call("SELECT Last_Play_Date FROM userDailyPlay WHERE Discord_ID=$userSnowflake && Game='$escapedGame'")
         return existing.next() && existing.getString("Last_Play_Date") == date
     }
 
-    private suspend fun getDailyPlays(userID: Int): List<UserDailyPlay> {
-        val dailyData = call("SELECT Game, Last_Play_Date, Streak FROM userDailyPlay WHERE ID=$userID")
+    private suspend fun getDailyPlays(userSnowflake: Long): List<UserDailyPlay> {
+        val dailyData = call("SELECT Game, Last_Play_Date, Streak FROM userDailyPlay WHERE Discord_ID=$userSnowflake")
         return buildList {
             while (dailyData.next()) {
                 add(

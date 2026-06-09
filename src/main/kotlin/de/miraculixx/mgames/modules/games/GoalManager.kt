@@ -57,8 +57,8 @@ object GoalManager {
         return SQL.completeDailyPlay(userSnowflake, guildSnowflake, game.name, date.toString(), previousDate.toString(), reward)
     }
 
-    suspend fun hasCompletedDaily(game: Game, userSnowflake: Long, guildSnowflake: Long): Boolean {
-        return SQL.hasCompletedDailyPlay(userSnowflake, guildSnowflake, game.name, currentDailyDate().toString())
+    suspend fun hasCompletedDaily(game: Game, userSnowflake: Long): Boolean {
+        return SQL.hasCompletedDailyPlay(userSnowflake, game.name, currentDailyDate().toString())
     }
 
     suspend fun getDailySeed(): Long {

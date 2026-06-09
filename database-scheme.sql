@@ -50,12 +50,11 @@ CREATE TABLE IF NOT EXISTS gameHistory (
 );
 
 CREATE TABLE IF NOT EXISTS userDailyPlay (
-    ID INT NOT NULL,
+    Discord_ID BIGINT NOT NULL,
     Game VARCHAR(64) NOT NULL,
     Last_Play_Date VARCHAR(10) NOT NULL,
     Streak INT NOT NULL,
-    PRIMARY KEY (ID, Game),
-    FOREIGN KEY (ID) REFERENCES userData(ID)
+    PRIMARY KEY (Discord_ID, Game)
 );
 
 CREATE TABLE IF NOT EXISTS globalDaily (
