@@ -22,7 +22,7 @@ import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
 
 @OptIn(ExperimentalTime::class)
-class CoinsCommand : SlashCommandEvent {
+class StatsCommand : SlashCommandEvent {
     override suspend fun trigger(it: SlashCommandInteractionEvent) {
         val ownStats = it.getOption("user") == null
         val member = if (ownStats) it.member ?: return

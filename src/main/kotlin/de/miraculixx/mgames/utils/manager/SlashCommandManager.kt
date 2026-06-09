@@ -9,7 +9,7 @@ import de.miraculixx.mgames.modules.trivia.TriviaCategory
 import de.miraculixx.mgames.modules.trivia.TriviaCommand
 import de.miraculixx.mgames.modules.trivia.TriviaDifficulty
 import de.miraculixx.mgames.modules.utils.commands.AdminCommand
-import de.miraculixx.mgames.modules.utils.commands.CoinsCommand
+import de.miraculixx.mgames.modules.utils.commands.StatsCommand
 import de.miraculixx.mgames.modules.utils.commands.SetupCommand
 import de.miraculixx.mgames.utils.log
 import dev.minn.jda.ktx.events.listener
@@ -29,7 +29,7 @@ object SlashCommandManager {
         "quick-math" to QuickMath,
         "setup" to SetupCommand(),
         "admin" to AdminCommand(),
-        "coins" to CoinsCommand(),
+        "coins" to StatsCommand(),
         "trivia" to TriviaCommand()
     )
 
@@ -91,7 +91,7 @@ object SlashCommandManager {
                 subcommand("daily", "Solve today's seeded medium quick math challenge")
             },
 
-            Command("coins", "Inspect your personal stats") {
+            Command("stats", "Inspect your personal stats") {
                 addOption(OptionType.USER, "user", "Inspect the stats from an other User")
             },
             Command("setup", "Setup all bot settings to start gaming real quick") {
