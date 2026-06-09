@@ -8,14 +8,19 @@ import de.miraculixx.mgames.modules.games.utils.FieldsTwoPlayer
 import de.miraculixx.mgames.modules.games.utils.SimpleGame
 import de.miraculixx.mgames.modules.games.utils.enums.Game
 import de.miraculixx.mgames.modules.games.utils.enums.GameMode
+import de.miraculixx.mgames.utils.Colors
 import de.miraculixx.mgames.utils.Icons
+import de.miraculixx.mgames.utils.extensions.awaitV2
+import de.miraculixx.mgames.utils.extensions.queueV2
 import de.miraculixx.mgames.utils.log
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.events.getDefaultScope
+import dev.minn.jda.ktx.interactions.components.Container
 import dev.minn.jda.ktx.messages.Embed
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import net.dv8tion.jda.api.EmbedBuilder
+import net.dv8tion.jda.api.components.MessageTopLevelComponent
 import net.dv8tion.jda.api.entities.*
 import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel
 import net.dv8tion.jda.api.entities.emoji.Emoji
@@ -78,42 +83,38 @@ class TTTGame(
         return rows
     }
 
-    private fun calcEmbed(): MessageEmbed {
-        return Embed {
-            title = "${Icons.tictactoe} || TIC TAC TOE"
-            description = "${Icons.x} - Player Red ${member1.asMention}\n" +
-                    "${Icons.o} - Player Green " +
-                    if (bot != null)
-                        "`Bot Level ${bot.level}`"
-                    else member2.asMention
-            if (winner != null) {
-                val message = when (winner!!) {
-                    FieldsTwoPlayer.EMPTY -> msg("draw", guildID)
+    private fun calcEmbed(buttons: List<ActionRow>): List<MessageTopLevelComponent> {
+        return listOf(
+            Container {
+                text("## ${Icons.tictactoe} || TIC TAC TOE")
+                separator()
+                text("${Icons.x} - Player Red ${member1.asMention}\n" +
+                        "${Icons.o} - Player Green " +
+                        if (bot != null) "`Bot Level ${bot.level}`"
+                        else member2.asMention)
+                separator()
+                var message = when (winner) {
+                    FieldsTwoPlayer.EMPTY -> "${msg("draw", guildID)}"
                     FieldsTwoPlayer.PLAYER_1 -> "${member1.asMention} ${msg("win", guildID)}"
                     FieldsTwoPlayer.PLAYER_2 -> "${member2.asMention} ${msg("win", guildID)}"
+                    null -> {
+                        if (whoPlays) {
+                            accentColorRaw = Colors.buttonRed
+                            "${member1.asMention} ${msg("onMove", guildID)}"
+                        } else {
+                            accentColorRaw = Colors.buttonGreen
+                            " ${member2.asMention} ${msg("onMove", guildID)}"
+                        }
+                    }
                 }
-                field {
-                    name = "~~<                                                                            >~~"
-                    value = "> \uD83C\uDFC1 $message"
-                    inline = false
+                if (winner != null) {
+                    accentColorRaw = null
+                    message = "${Icons.goalFlag} $message"
                 }
-                color = 0x2f3136
-            } else if (whoPlays) {
-                field {
-                    name = "~~<                                                                            >~~"
-                    value = "> ${member1.asMention} ${msg("onMove", guildID)}"
-                    inline = false
-                }
-                color = 0xff0000
-            } else {
-                field {
-                    name = "~~<                                                                            >~~"
-                    value = "> ${member2.asMention} ${msg("onMove", guildID)}"
-                    inline = false
-                }
-                color = 0x1fff00
+                text("> $message")
+                components += buttons
             }
-        }
+        )
     }
 
     private suspend fun checkWin() {
@@ -249,7 +250,7 @@ class TTTGame(
         }
         checkWin()
         val buttons = calcButtons()
-        message.editMessageEmbeds(calcEmbed()).setComponents(buttons).await()
+        message.editMessageComponents(calcEmbed(buttons)).awaitV2()
         threadMessage.editMessageComponents(buttons).await()
         event?.editMessage(event.message.contentRaw)?.queue()
         if (winner != null) {
@@ -267,7 +268,7 @@ class TTTGame(
 
     override suspend fun setWinner(win: FieldsTwoPlayer) {
         winner = win
-        message.editMessageEmbeds(calcEmbed()).setComponents(calcButtons()).queue()
+        message.editMessageComponents(calcEmbed(calcButtons())).queueV2()
         thread.delete().queue()
     }
 
@@ -280,8 +281,7 @@ class TTTGame(
 
         getDefaultScope().launch {
             val channel = guild.getTextChannelById(channelID)!!
-            message = channel.sendMessageEmbeds(calcEmbed())
-                .setComponents(calcButtons()).complete()
+            message = channel.sendMessageComponents(calcEmbed(calcButtons())).awaitV2()
             thread = message.createThreadChannel("TTT - ${member1.user.name} vs ${member2.user.name}").complete()
             threadMessage = thread.sendMessage(" \u1CBC ").setComponents(calcButtons()).complete()
             thread.addThreadMember(member1).complete()

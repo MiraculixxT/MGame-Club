@@ -8,6 +8,7 @@ object Icons {
     // Game generic
     val x = "<:xx:988156472020066324>"
     val o = "<:oo:988156473274163200>"
+    val goalFlag = "\uD83C\uDFC1"
 
     // Game specific
     val tictactoe = "<:tictactoe:1513850555796029531>"
