@@ -31,6 +31,7 @@ notYourMove: "- Du bist gerade nicht am Zug!"
 notPartOfMatch: "- Du bist kein Teil dieser Partie!\nStarte eine eigene über /%GAME% <option>"
 column: "Spalte"
 selfDelete: "Der Spiel-Bereich löscht sich in **30s**"
+connect4: "4-Gewinnt"
 
 #
 # SYSTEM Translations

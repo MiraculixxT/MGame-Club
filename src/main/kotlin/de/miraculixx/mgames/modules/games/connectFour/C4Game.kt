@@ -10,15 +10,23 @@ import de.miraculixx.mgames.modules.games.utils.FieldsTwoPlayer
 import de.miraculixx.mgames.modules.games.utils.SimpleGame
 import de.miraculixx.mgames.modules.games.utils.enums.Game
 import de.miraculixx.mgames.modules.games.utils.enums.GameMode
+import de.miraculixx.mgames.utils.Colors
+import de.miraculixx.mgames.utils.Icons
 import de.miraculixx.mgames.utils.api.SQL
+import de.miraculixx.mgames.utils.extensions.awaitV2
+import de.miraculixx.mgames.utils.extensions.queueV2
 import de.miraculixx.mgames.utils.log
 import dev.minn.jda.ktx.coroutines.await
+import dev.minn.jda.ktx.interactions.components.Container
+import dev.minn.jda.ktx.interactions.components.TextDisplay
+import dev.minn.jda.ktx.interactions.components.button
 import dev.minn.jda.ktx.messages.Embed
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import net.dv8tion.jda.api.EmbedBuilder
+import net.dv8tion.jda.api.components.MessageTopLevelComponent
 import net.dv8tion.jda.api.entities.*
 import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel
 import net.dv8tion.jda.api.entities.emoji.Emoji
@@ -60,49 +68,42 @@ class C4Game(
         (1..7).map { FieldsTwoPlayer.EMPTY }.toTypedArray()
     }
 
-    private fun calcEmbed(): MessageEmbed {
-        return Embed {
-            title = "<:gamespot:988131155159183420> || CONNECT 4"
-            description = "$member1Emote - Player 1 ${member1.asMention}\n" +
-                    "$member2Emote - Player 2 " +
-                    if (bot != null)
-                        "`Bot Level ${bot!!.level}`"
-                    else member2.asMention
-            if (winner == null) {
-                val mention = if (whoPlays) member1.asMention else member2.asMention
-                field(
-                    "~~<                                                                            >~~",
-                    "> $mention ${msg("onMove", guildID)}", false
-                )
-                color = 0xb8800b
-            } else {
-                val msg = when (winner!!) {
+    private fun calcEmbed(done: Boolean, buttons: List<ActionRow>): List<MessageTopLevelComponent> {
+        return listOf(
+            Container {
+                val text = TextDisplay("## ${Icons.connect4} || ${msg("connect4", guildID)}")
+                if (done) section(button(""), listOf(text))
+                else components += text
+                separator()
+                text("$member1Emote - ${member1.asMention}\n" +
+                        "$member2Emote - ${if (daily) "`Daily Challenge`" else if (bot != null) "`Bot Level ${bot!!.level}`" else member2.asMention}\n")
+                separator()
+                val msg = when (winner) {
                     FieldsTwoPlayer.EMPTY -> msg("draw", guildID)
                     FieldsTwoPlayer.PLAYER_1 -> "${member1.asMention} ${msg("win", guildID)}"
                     FieldsTwoPlayer.PLAYER_2 -> "${member2.asMention} ${msg("win", guildID)}"
+                    else -> {
+                        val turn = if (whoPlays) member1.asMention else member2.asMention
+                        accentColorRaw = Colors.yellow
+                        "> $turn ${msg("onMove", guildID)}"
+                    }
                 }
-                field(
-                    "~~<                                                                            >~~",
-                    "> \uD83C\uDFC1 $msg", false
-                )
-                color = 0x2f3136
-            }
+                if (winner == null) text(msg)
+                else text("${Icons.goalFlag} $msg")
 
-            //Game field
-            val stringBuilder = StringBuilder()
-            var rowI = 1
-            fields.forEach { row ->
-                stringBuilder.append("\n> **║** ")
-                row.forEach { stringBuilder.append(fieldToEmote(it)) }
-                stringBuilder.append(" **║**")
-                rowI++
+                val stringBuilder = StringBuilder()
+                var rowI = 1
+                fields.forEach { row ->
+                    stringBuilder.append("\n> **║** ")
+                    row.forEach { stringBuilder.append(fieldToEmote(it)) }
+                    stringBuilder.append(" **║**")
+                    rowI++
+                }
+                stringBuilder.append("\n> **║** ${Icons.one}${Icons.two}${Icons.three}${Icons.four}${Icons.five}${Icons.six}${Icons.seven} **║**")
+                text(stringBuilder.toString())
+                components += buttons
             }
-            stringBuilder.append("\n> **║** <:11:989885132418711564><:22:989886289803374714><:33:989886474679881749><:44:989886595970777148><:55:989886723792203828><:66:989886928197402635><:77:989887121449975818> **║**")
-            field(
-                "~~<                                                                            >~~",
-                stringBuilder.toString(), false
-            )
-        }
+        )
     }
 
     private fun calcButtons(): List<ActionRow> {
@@ -192,7 +193,7 @@ class C4Game(
 
     override suspend fun setWinner(win: FieldsTwoPlayer) {
         winner = win
-        message.editMessageEmbeds(calcEmbed()).setComponents(calcButtons()).queue()
+        message.editMessageComponents(calcEmbed(true, calcButtons())).queueV2()
         thread.delete().queue()
     }
 
@@ -291,7 +292,7 @@ class C4Game(
             GameManager.removeGame(guildID, Game.CONNECT_4, uuid)
         }
         val selector = calcButtons()
-        message.editMessageEmbeds(calcEmbed()).setComponents(selector).await()
+        message.editMessageComponents(calcEmbed(winner != null, selector)).awaitV2()
         threadMessage.editMessageComponents(selector).await()
 
         if (winner != null) {
@@ -321,12 +322,11 @@ class C4Game(
             //Game Start
             val channel = guild.getTextChannelById(channelID)!!
             val selector = calcButtons()
-            message = channel.sendMessageEmbeds(calcEmbed())
-                .setComponents(selector).complete()
-            thread = message.createThreadChannel("4G - ${member1.nickname ?: member1.user.name} vs ${member2.nickname ?: member2.user.name}").complete()
-            threadMessage = thread.sendMessage(" \u1CBC ").setComponents(selector).complete()
-            thread.addThreadMember(member1).complete()
-            thread.addThreadMember(member2).complete()
+            message = channel.sendMessageComponents(calcEmbed(false, selector)).awaitV2()
+            thread = message.createThreadChannel("4G - ${member1.nickname ?: member1.user.name} vs ${member2.nickname ?: member2.user.name}").await()
+            threadMessage = thread.sendMessage(" \u1CBC ").setComponents(selector).await()
+            thread.addThreadMember(member1).await()
+            thread.addThreadMember(member2).await()
             val mention = if (whoPlays) member1 else member2
             thread.sendMessage("${mention.asMention} ${msg("onMove", guildID)}").queue()
 
