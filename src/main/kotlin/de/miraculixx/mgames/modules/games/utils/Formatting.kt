@@ -1,7 +1,7 @@
 package de.miraculixx.mgames.modules.games.utils
 
-import de.miraculixx.mgames.utils.mCoin
+import de.miraculixx.mgames.utils.Icons
 
 fun coinGrantFooter(coins: Int): String {
-    return if (coins <= 0) "" else "   ||  +${coins} $mCoin"
+    return if (coins <= 0) "" else "   ||  +${coins} ${Icons.mCoins}"
 }

@@ -8,6 +8,7 @@ import de.miraculixx.mgames.modules.games.utils.FieldsTwoPlayer
 import de.miraculixx.mgames.modules.games.utils.SimpleGame
 import de.miraculixx.mgames.modules.games.utils.enums.Game
 import de.miraculixx.mgames.modules.games.utils.enums.GameMode
+import de.miraculixx.mgames.utils.Icons
 import de.miraculixx.mgames.utils.log
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.events.getDefaultScope
@@ -79,9 +80,9 @@ class TTTGame(
 
     private fun calcEmbed(): MessageEmbed {
         return Embed {
-            title = "<:gamespot:988131155159183420> || TIC TAC TOE"
-            description = "<:xx:988156472020066324> - Player Red ${member1.asMention}\n" +
-                    "<:oo:988156473274163200> - Player Green " +
+            title = "${Icons.tictactoe} || TIC TAC TOE"
+            description = "${Icons.x} - Player Red ${member1.asMention}\n" +
+                    "${Icons.o} - Player Green " +
                     if (bot != null)
                         "`Bot Level ${bot.level}`"
                     else member2.asMention
@@ -216,7 +217,7 @@ class TTTGame(
     override suspend fun interact(options: List<String>, interactor: Member, event: GenericComponentInteractionCreateEvent?) {
         val memberID = interactor.idLong
         if (memberID != member1.idLong && memberID != member2.idLong) {
-            event?.reply(msgDiff(msg("notPartOfMatch", guildID).replace("%GAME%", "tictactoe")))?.setEphemeral(true)?.queue()
+            event?.reply(msgDiff(msg("notPartOfMatch", guildID, mapOf("GAME" to "tictactoe"))))?.setEphemeral(true)?.queue()
             return
         }
         val row = options[0].toInt()

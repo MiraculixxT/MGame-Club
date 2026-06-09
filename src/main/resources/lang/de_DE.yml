@@ -35,5 +35,5 @@ selfDelete: "Der Spiel-Bereich löscht sich in **30s**"
 #
 # SYSTEM Translations
 #
-systemLanguageSwitch: "Successfully switched MGame Club language!"
-systemLanguageInfo: "Missing a language? Help us to translate MGame Club in your language! You can find all information on the official [**GitHub Repo**](https://miraculixx.de/gameclub) or contact us on our Support Server [**MCreate - Hub**](https://discord.gg/VEcR8RbnSH)"
+systemLanguageSwitch: "Die MGame Club Sprache wurde erfolgreich gewechselt!"
+systemLanguageInfo: "Fehlt eine Sprache? Hilf uns, MGame Club in deine Sprache zu übersetzen! Alle Informationen findest du im offiziellen [**GitHub Repo**](https://miraculixx.de/gameclub) oder kontaktiere uns auf unserem Support Server [**MCreate - Hub**](https://discord.gg/VEcR8RbnSH)"

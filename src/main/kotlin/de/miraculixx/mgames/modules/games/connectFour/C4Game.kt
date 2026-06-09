@@ -179,7 +179,7 @@ class C4Game(
         val row = options[1][0]
         val memberID = interactor.idLong
         if (memberID != member1.idLong && memberID != member2.idLong) {
-            event?.reply(msgDiff(msg("notPartOfMatch", guildID).replace("%GAME%", "connect-4")))?.setEphemeral(true)?.queue()
+            event?.reply(msgDiff(msg("notPartOfMatch", guildID, mapOf("GAME" to "connect-4"))))?.setEphemeral(true)?.queue()
             return
         }
         if ((whoPlays && memberID != member1.idLong) || (!whoPlays && memberID != member2.idLong)) {

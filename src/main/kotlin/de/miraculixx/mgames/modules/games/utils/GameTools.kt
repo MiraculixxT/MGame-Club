@@ -38,7 +38,7 @@ class GameTools(private val gameTag: String, private val gameName: String, priva
             "bot" -> {
                 val option = it.getOption("difficulty")?.asString?.uppercase()
                 val level = option.toDifficultyLevel()
-                it.reply(msg("commandStartBotGame", discordID).replace("%DIFF%", option ?: "RANDOM")).setEphemeral(true).queue()
+                it.reply(msg("commandStartBotGame", discordID, mapOf("DIFF" to (option ?: "RANDOM")))).setEphemeral(true).queue()
                 GameManager.newGameVersus(game, it.guild ?: return, member.id to it.jda.selfUser.id, it.channel.idLong, level)
             }
             "daily" -> {

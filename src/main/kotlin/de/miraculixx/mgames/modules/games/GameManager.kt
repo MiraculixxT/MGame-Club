@@ -27,7 +27,7 @@ object GameManager {
     fun searchGame(hook: InteractionHook, member: Member, gameTag: String, gameName: String) {
         hook.editOriginal(
             "\uD83C\uDFAE **|| ${gameName.uppercase()}**\n" +
-                    "${member.asMention} ${msg("commandGameQueue", member.guild.idLong).replace("%GAME%", gameName)}"
+                    "${member.asMention} ${msg("commandGameQueue", member.guild.idLong, mapOf("GAME" to gameName))}"
         ).setComponents(
             ActionRow.of(
                 Button.success("GAME_${gameTag}_ACCEPT_${member.id}", "Accept").withEmoji(Emoji.fromUnicode("✔️")),
@@ -39,7 +39,7 @@ object GameManager {
     fun requestGame(hook: InteractionHook, member: Member, opponent: Member, gameTag: String, gameName: String) {
         hook.editOriginal(
             "\uD83C\uDFAE **|| ${gameName.uppercase()}**\n" +
-                    "${opponent.asMention} - ${msg("commandGameRequest", member.guild.idLong).replace("%GAME%", gameName).replace("%MEMBER%", member.asMention)}"
+                    "${opponent.asMention} - ${msg("commandGameRequest", member.guild.idLong, mapOf("GAME" to gameName, "MEMBER" to member.asMention))}"
         ).setComponents(
             ActionRow.of(
                 Button.success("GAME_${gameTag}_YES_${member.id}_${opponent.id}", "Accept").withEmoji(Emoji.fromUnicode("✔️")),

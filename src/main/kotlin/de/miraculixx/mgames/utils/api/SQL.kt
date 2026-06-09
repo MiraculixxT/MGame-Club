@@ -1,6 +1,7 @@
 package de.miraculixx.mgames.utils.api
 
 import de.miraculixx.mgames.config.ConfigManager
+import de.miraculixx.mgames.config.LanguageManager
 import de.miraculixx.mgames.modules.games.utils.enums.Game
 import de.miraculixx.mgames.modules.games.utils.enums.GameMode
 import de.miraculixx.mgames.utils.Color
@@ -71,8 +72,10 @@ object SQL {
     }
 
     private suspend fun createGuild(guildSnowflake: Long): GuildData {
-        update("INSERT INTO guildData (Discord_ID, Premium, Stats_Channel, Language) VALUES ($guildSnowflake, false, 0, 'EN_US')")
-        return GuildData(guildSnowflake, false, 0)
+        val language = LanguageManager.Language.EN
+        update("INSERT INTO guildData (Discord_ID, Premium, Stats_Channel, Language) VALUES ($guildSnowflake, false, 0, '${language.key}')")
+        LanguageManager.cacheGuildLanguage(guildSnowflake, language.key)
+        return GuildData(guildSnowflake, false, 0, language)
     }
 
     private suspend fun getUserID(userSnowflake: Long, guildSnowflake: Long): Int {
@@ -117,11 +120,20 @@ object SQL {
     suspend fun getGuild(guildSnowflake: Long): GuildData {
         val result = call("SELECT * FROM guildData WHERE Discord_ID=$guildSnowflake")
         if (!result.next()) return createGuild(guildSnowflake)
+        val language = LanguageManager.Language.from(result.getString("Language"))
+        LanguageManager.cacheGuildLanguage(guildSnowflake, language.key)
         return GuildData(
             guildSnowflake,
             result.getBoolean("Premium"),
-            result.getLong("Stats_Channel")
+            result.getLong("Stats_Channel"),
+            language
         )
+    }
+
+    suspend fun setGuildLanguage(guildSnowflake: Long, language: LanguageManager.Language) {
+        getGuild(guildSnowflake)
+        update("UPDATE guildData SET Language='${language.key}' WHERE Discord_ID=$guildSnowflake")
+        LanguageManager.cacheGuildLanguage(guildSnowflake, language.key)
     }
 
     suspend fun setUserCoins(userSnowflake: Long, guildSnowflake: Long, amount: Int) {
@@ -273,7 +285,7 @@ object SQL {
      * @param premium Does this Guild own Premium?
      * @param statsChannel Discord Channel ID (Statistics Channel)
      */
-    data class GuildData(val id: Long, val premium: Boolean, val statsChannel: Long)
+    data class GuildData(val id: Long, val premium: Boolean, val statsChannel: Long, val language: LanguageManager.Language)
 
     init {
         connection = connect()
