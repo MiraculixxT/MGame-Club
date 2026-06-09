@@ -29,7 +29,7 @@ object SlashCommandManager {
         "quick-math" to QuickMath,
         "setup" to SetupCommand(),
         "admin" to AdminCommand(),
-        "coins" to StatsCommand(),
+        "stats" to StatsCommand(),
         "trivia" to TriviaCommand()
     )
 
