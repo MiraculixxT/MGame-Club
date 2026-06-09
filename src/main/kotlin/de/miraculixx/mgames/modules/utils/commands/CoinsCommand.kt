@@ -1,11 +1,18 @@
 package de.miraculixx.mgames.modules.utils.commands
 
+import de.miraculixx.mgames.config.Ansi
+import de.miraculixx.mgames.config.msgAnsi
 import de.miraculixx.mgames.modules.games.GoalManager
 import de.miraculixx.mgames.modules.games.utils.enums.Game
+import de.miraculixx.mgames.utils.Icons
 import de.miraculixx.mgames.utils.api.SQL
 import de.miraculixx.mgames.utils.entities.SlashCommandEvent
-import dev.minn.jda.ktx.messages.Embed
+import de.miraculixx.mgames.utils.extensions.queueV2
+import dev.minn.jda.ktx.interactions.components.Container
+import dev.minn.jda.ktx.interactions.components.Thumbnail
+import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.minus
 import kotlinx.datetime.toLocalDateTime
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import kotlin.time.Clock
@@ -32,42 +39,44 @@ class CoinsCommand : SlashCommandEvent {
         val timestamp = Clock.System.now().minus(date.minute.minutes)
             .minus(date.second.seconds).plus((25 - date.hour).hours).epochSeconds
 
-        val defaultEmbed = Embed {
-            color = 0xd39526
-            title = "<:mcoin:996386525208117258> ~~M~~-**COINS** - `${userData.coins}`"
-            description = if (ownStats) "<:blanc:784059217890770964> <:blanc:784059217890770964>" else "<:blanc:784059217890770964> **↳** `Miraculixx#1234` (<@341998118574751745>)\n" +
-                    "<:blanc:784059217890770964> **↳** `Booster Rank` ${if (member.isBoosting) "<:yes:998195646467145751>" else "<:no:998195603324551323>"}"
-            field {
-                name = "Total Coins"
-                value = "`${userData.totalCoins}`"
-                inline = true
-            }
-            if (ownStats) {
-                field {
-                    name = "\uD83C\uDFAF  ||  DAILY PLAYS"
-                    value = buildString {
-                        append("```diff\n")
-                        val today = GoalManager.currentDailyDate().toString()
-                        Game.entries.forEach { game ->
-                            val data = dailyData.firstOrNull { it.game == game.name }
-                            val completed = data?.lastPlayDate == today
-                            append("${if (completed) "+" else "-"} ${game.title} | Streak ${data?.streak ?: 0}\n")
-                        }
-                        append("```\n")
-                        append("> New Daily Plays <t:$timestamp:R>")
-                    }
+        it.replyComponents(listOf(
+            Container {
+                section {
+                    text("## \uD83D\uDCCA || ${member.asMention} Statistics")
+                    accessory = Thumbnail(member.user.avatarUrl ?: "https://imgur.com/gKjrvOA.png")
+                    text("${Icons.mCoins} >> ${userData.coins} (${userData.totalCoins})")
                 }
-                field {
-                    name = "**DAILY REWARDS**"
-                    value = buildString {
-                        append("```ini\n")
-                        Game.entries.forEach { game -> append("${game.title} => ${game.coinValue * 10}\n") }
-                        append("```")
-                    }
-                }
+                separator()
+                text("### \uD83D\uDCC6 || Daily Games\n${msgAnsi(buildDailyOverview(dailyData))}\n> New Daily Plays <t:$timestamp:R>")
             }
-        }
-
-        it.replyEmbeds(defaultEmbed).queue()
+        )).queueV2()
     }
+
+    private fun buildDailyOverview(dailyData: List<SQL.UserDailyPlay>): String {
+        val today = GoalManager.currentDailyDate()
+        val todayString = today.toString()
+        val yesterdayString = today.minus(1, DateTimeUnit.DAY).toString()
+        val dailyDataByGame = dailyData.associateBy { it.game }
+        val titleWidth = Game.entries.maxOf { it.title.length }
+
+        return Game.entries
+            .map { game ->
+                val data = dailyDataByGame[game.name]
+                val completedToday = data?.lastPlayDate == todayString
+                val streak = when (data?.lastPlayDate) {
+                    todayString, yesterdayString -> data.streak
+                    else -> 0
+                }
+                DailyGameState(game, streak, completedToday)
+            }
+            .sortedWith(compareBy { it.streak == 0 })
+            .joinToString(separator = "\n", postfix = "\n") { state ->
+                val color = if (state.completedToday) Ansi.textGreen else Ansi.textRed
+                val status = if (state.completedToday) "✓" else if (state.streak > 0) "Pending..." else "✗"
+                "$color${Ansi.bold}${state.game.title.padEnd(titleWidth)}${Ansi.reset}" +
+                    "$color | Streak ${state.streak} | $status${Ansi.reset}"
+            }
+    }
+
+    private data class DailyGameState(val game: Game, val streak: Int, val completedToday: Boolean)
 }

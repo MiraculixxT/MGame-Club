@@ -16,7 +16,7 @@ import de.miraculixx.mgames.utils.log
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.events.getDefaultScope
 import dev.minn.jda.ktx.interactions.components.Container
-import dev.minn.jda.ktx.messages.Embed
+import dev.minn.jda.ktx.interactions.components.button
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import net.dv8tion.jda.api.EmbedBuilder
@@ -27,6 +27,7 @@ import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.events.interaction.component.GenericComponentInteractionCreateEvent
 import net.dv8tion.jda.api.components.actionrow.ActionRow
 import net.dv8tion.jda.api.components.buttons.Button
+import net.dv8tion.jda.api.components.buttons.ButtonStyle
 import java.util.*
 import kotlin.random.Random
 import kotlin.time.Duration.Companion.seconds
@@ -88,13 +89,13 @@ class TTTGame(
             Container {
                 text("## ${Icons.tictactoe} || TIC TAC TOE")
                 separator()
-                text("${Icons.x} - Player Red ${member1.asMention}\n" +
-                        "${Icons.o} - Player Green " +
+                text("${Icons.x} - Red ${member1.asMention}\n" +
+                        "${Icons.o} - Green " +
                         if (bot != null) "`Bot Level ${bot.level}`"
                         else member2.asMention)
                 separator()
                 var message = when (winner) {
-                    FieldsTwoPlayer.EMPTY -> "${msg("draw", guildID)}"
+                    FieldsTwoPlayer.EMPTY -> "draw"
                     FieldsTwoPlayer.PLAYER_1 -> "${member1.asMention} ${msg("win", guildID)}"
                     FieldsTwoPlayer.PLAYER_2 -> "${member2.asMention} ${msg("win", guildID)}"
                     null -> {
@@ -109,9 +110,11 @@ class TTTGame(
                 }
                 if (winner != null) {
                     accentColorRaw = null
-                    message = "${Icons.goalFlag} $message"
-                }
-                text("> $message")
+                    section {
+                        accessory = button("GAME_TTT_R_${member1.id}_${member2.id}_${bot?.level ?: 0}", Icons.play, style = ButtonStyle.PRIMARY)
+                        text("> ${Icons.goalFlag} $message")
+                    }
+                } else text("> $message")
                 components += buttons
             }
         )
