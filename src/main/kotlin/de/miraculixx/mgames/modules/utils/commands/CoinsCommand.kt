@@ -44,7 +44,7 @@ class CoinsCommand : SlashCommandEvent {
                 section {
                     text("## \uD83D\uDCCA || ${member.asMention} Statistics")
                     accessory = Thumbnail(member.user.avatarUrl ?: "https://imgur.com/gKjrvOA.png")
-                    text("${Icons.mCoins} >> ${userData.coins} (${userData.totalCoins})")
+                    text("> ${Icons.mCoins} x ${userData.coins} (${userData.totalCoins})")
                 }
                 separator()
                 text("### \uD83D\uDCC6 || Daily Games\n${msgAnsi(buildDailyOverview(dailyData))}\n> New Daily Plays <t:$timestamp:R>")

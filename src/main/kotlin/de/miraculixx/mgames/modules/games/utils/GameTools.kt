@@ -74,9 +74,10 @@ class GameTools(private val gameTag: String, private val gameName: String, priva
         when (options[0]) {
             "P" -> GameManager.getGame(guild.idLong, game, UUID.fromString(options[1]))
                     ?.interact(options.subList(2, options.size), member, it)
-            "R" -> {
-                it.message.delete().queue()
-                GameManager.newGameVersus(game, guild, options[1] to options[2], (it.channel as ThreadChannel).parentMessageChannel.idLong)
+            "R" -> { // <id1>_<id2>_<difficulty>
+                it.deferEdit().queue()
+                val botLevel = options.getOrNull(3)?.toIntOrNull() ?: 0
+                GameManager.newGameVersus(game, guild, options[1] to options[2], it.channel.idLong, botLevel)
             }
             "YES" -> {
                 if (options[2] != member.id)

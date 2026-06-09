@@ -13,16 +13,13 @@ import de.miraculixx.mgames.utils.Icons
 import de.miraculixx.mgames.utils.extensions.awaitV2
 import de.miraculixx.mgames.utils.extensions.queueV2
 import de.miraculixx.mgames.utils.log
-import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.events.getDefaultScope
 import dev.minn.jda.ktx.interactions.components.Container
 import dev.minn.jda.ktx.interactions.components.button
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import net.dv8tion.jda.api.EmbedBuilder
 import net.dv8tion.jda.api.components.MessageTopLevelComponent
 import net.dv8tion.jda.api.entities.*
-import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel
 import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.events.interaction.component.GenericComponentInteractionCreateEvent
 import net.dv8tion.jda.api.components.actionrow.ActionRow
@@ -52,8 +49,6 @@ class TTTGame(
     private var whoPlays = random.nextBoolean()
     private var winner: FieldsTwoPlayer? = null
     private lateinit var message: Message
-    private lateinit var threadMessage: Message
-    private lateinit var thread: ThreadChannel
     private val fields = Array(3) {
         (1..3).map { FieldsTwoPlayer.EMPTY }.toTypedArray()
     }
@@ -91,11 +86,12 @@ class TTTGame(
                 separator()
                 text("${Icons.x} - Red ${member1.asMention}\n" +
                         "${Icons.o} - Green " +
-                        if (bot != null) "`Bot Level ${bot.level}`"
+                        if (daily) "`Daily Challenge`"
+                        else if (bot != null) "`Bot Level ${bot.level}`"
                         else member2.asMention)
                 separator()
-                var message = when (winner) {
-                    FieldsTwoPlayer.EMPTY -> "draw"
+                val message = when (winner) {
+                    FieldsTwoPlayer.EMPTY -> "Draw"
                     FieldsTwoPlayer.PLAYER_1 -> "${member1.asMention} ${msg("win", guildID)}"
                     FieldsTwoPlayer.PLAYER_2 -> "${member2.asMention} ${msg("win", guildID)}"
                     null -> {
@@ -112,7 +108,7 @@ class TTTGame(
                     accentColorRaw = null
                     section {
                         accessory = button("GAME_TTT_R_${member1.id}_${member2.id}_${bot?.level ?: 0}", Icons.play, style = ButtonStyle.PRIMARY)
-                        text("> ${Icons.goalFlag} $message")
+                        text("${Icons.goalFlag} $message")
                     }
                 } else text("> $message")
                 components += buttons
@@ -122,66 +118,50 @@ class TTTGame(
 
     private suspend fun checkWin() {
         winner = getWinner() ?: return
-        val replayButton = Button.primary("GAME_TTT_R_${member1.id}_${member2.id}", "Replay").withEmoji(Emoji.fromUnicode("\uD83D\uDD01"))
-        val msg = "~~========================~~\n\n" +
-                "**\uD83C\uDFC1 || ${msg("gameEnd", guildID)}**\n" +
-                when (winner ?: return) {
-                    FieldsTwoPlayer.EMPTY -> {
-                        if (!daily) {
-                            GoalManager.registerGameHistory(
-                                Game.TIC_TAC_TOE,
-                                if (bot != null) listOf(member1.idLong) else listOf(member1.idLong, member2.idLong)
-                            )
-                        }
-                        msg("draw", guildID)
-                    }
-                    FieldsTwoPlayer.PLAYER_1 -> {
-                        val dailyResult = if (daily) {
-                            GoalManager.registerDailyCompletion(Game.TIC_TAC_TOE, member1.idLong, guildID, difficultyMultiplier)
-                        } else null
-                        if (!daily || dailyResult?.completed == true) {
-                            GoalManager.registerGameResult(
-                                Game.TIC_TAC_TOE,
-                                if (bot != null) GameMode.BOT else GameMode.USER,
-                                winnerSnowflake = member1.idLong,
-                                loserSnowflake = if (bot == null) member2.idLong else null,
-                                guildSnowflake = guildID,
-                                difficultyMultiplier = difficultyMultiplier
-                            )
-                        }
-                        "<:xx:988156472020066324> ${member1.asMention} ${msg("win", guildID)}"
-                    }
-                    FieldsTwoPlayer.PLAYER_2 -> {
-                        if (bot == null) {
-                            GoalManager.registerGameResult(
-                                Game.TIC_TAC_TOE,
-                                GameMode.USER,
-                                winnerSnowflake = member2.idLong,
-                                loserSnowflake = member1.idLong,
-                                guildSnowflake = guildID,
-                                difficultyMultiplier = difficultyMultiplier
-                            )
-                        } else {
-                            if (!daily) {
-                                GoalManager.registerGameResult(
-                                    Game.TIC_TAC_TOE,
-                                    GameMode.BOT,
-                                    winnerSnowflake = null,
-                                    loserSnowflake = member1.idLong,
-                                    guildSnowflake = guildID,
-                                    difficultyMultiplier = difficultyMultiplier
-                                )
-                            }
-                        }
-                        "<:oo:988156473274163200> ${member2.asMention} ${msg("win", guildID)}!"
-                    }
+        when (winner ?: return) {
+            FieldsTwoPlayer.EMPTY -> if (!daily) {
+                GoalManager.registerGameHistory(
+                    Game.TIC_TAC_TOE,
+                    if (bot != null) listOf(member1.idLong) else listOf(member1.idLong, member2.idLong)
+                )
+            }
+            FieldsTwoPlayer.PLAYER_1 -> {
+                val dailyResult = if (daily) {
+                    GoalManager.registerDailyCompletion(Game.TIC_TAC_TOE, member1.idLong, guildID, difficultyMultiplier)
+                } else null
+                if (!daily || dailyResult?.completed == true) {
+                    GoalManager.registerGameResult(
+                        Game.TIC_TAC_TOE,
+                        if (bot != null) GameMode.BOT else GameMode.USER,
+                        winnerSnowflake = member1.idLong,
+                        loserSnowflake = if (bot == null) member2.idLong else null,
+                        guildSnowflake = guildID,
+                        difficultyMultiplier = difficultyMultiplier
+                    )
                 }
-        if (bot != null) thread.sendMessage(msg)
-            .setEmbeds(EmbedBuilder().setDescription(msg("selfDelete", guildID)).build()).queue()
-        else thread.sendMessage(msg)
-            .setEmbeds(EmbedBuilder().setDescription(msg("selfDelete", guildID)).build())
-            .setComponents(ActionRow.of(replayButton)).queue()
-
+            }
+            FieldsTwoPlayer.PLAYER_2 -> {
+                if (bot == null) {
+                    GoalManager.registerGameResult(
+                        Game.TIC_TAC_TOE,
+                        GameMode.USER,
+                        winnerSnowflake = member2.idLong,
+                        loserSnowflake = member1.idLong,
+                        guildSnowflake = guildID,
+                        difficultyMultiplier = difficultyMultiplier
+                    )
+                } else if (!daily) {
+                    GoalManager.registerGameResult(
+                        Game.TIC_TAC_TOE,
+                        GameMode.BOT,
+                        winnerSnowflake = null,
+                        loserSnowflake = member1.idLong,
+                        guildSnowflake = guildID,
+                        difficultyMultiplier = difficultyMultiplier
+                    )
+                }
+            }
+        }
         GameManager.removeGame(guildID, Game.TIC_TAC_TOE, uuid)
     }
 
@@ -230,10 +210,6 @@ class TTTGame(
             if (whoPlays) {
                 fields[row][column] = FieldsTwoPlayer.PLAYER_1
                 whoPlays = false
-                thread.sendMessage(
-                    "<:xx:988156472020066324> -> **${row+1}${column+1}**\n" +
-                            "> ${member2.asMention} ${msg("onMove", guildID)}"
-                ).queue()
             } else {
                 event?.reply(msgDiff(msg("notYourMove", guildID)))?.setEphemeral(true)?.queue()
                 return
@@ -241,25 +217,17 @@ class TTTGame(
         } else {
             if (!whoPlays) {
                 fields[row][column] = FieldsTwoPlayer.PLAYER_2
-                thread.sendMessage(
-                    "<:oo:988156473274163200> -> **${row+1}${column+1}**\n" +
-                            "> ${member1.asMention} ${msg("onMove", guildID)}"
-                ).queue()
                 whoPlays = true
             } else {
                 event?.reply(msgDiff(msg("notYourMove", guildID)))?.setEphemeral(true)?.queue()
                 return
             }
         }
+        event?.deferEdit()?.queue()
         checkWin()
         val buttons = calcButtons()
         message.editMessageComponents(calcEmbed(buttons)).awaitV2()
-        threadMessage.editMessageComponents(buttons).await()
-        event?.editMessage(event.message.contentRaw)?.queue()
-        if (winner != null) {
-            delay(30.seconds)
-            thread.delete().queue()
-        } else if (bot != null && !whoPlays) botMove()
+        if (winner == null && bot != null && !whoPlays) botMove()
     }
 
     private suspend fun botMove() {
@@ -272,7 +240,6 @@ class TTTGame(
     override suspend fun setWinner(win: FieldsTwoPlayer) {
         winner = win
         message.editMessageComponents(calcEmbed(calcButtons())).queueV2()
-        thread.delete().queue()
     }
 
     init {
@@ -285,12 +252,6 @@ class TTTGame(
         getDefaultScope().launch {
             val channel = guild.getTextChannelById(channelID)!!
             message = channel.sendMessageComponents(calcEmbed(calcButtons())).awaitV2()
-            thread = message.createThreadChannel("TTT - ${member1.user.name} vs ${member2.user.name}").complete()
-            threadMessage = thread.sendMessage(" \u1CBC ").setComponents(calcButtons()).complete()
-            thread.addThreadMember(member1).complete()
-            thread.addThreadMember(member2).complete()
-            val mention = if (whoPlays) member1.asMention else member2.asMention
-            thread.sendMessage("$mention ${msg("onMove", guildID)}").queue()
             if (bot != null && !whoPlays)
                 botMove()
         }
