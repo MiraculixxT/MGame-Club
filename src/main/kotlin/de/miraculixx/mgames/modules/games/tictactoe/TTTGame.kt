@@ -39,6 +39,7 @@ class TTTGame(
     seed: Long? = null
 ) : SimpleGame {
     override val startedAt: Long = System.currentTimeMillis()
+    override val playerIds: Set<Long> = setOf(member1.idLong, member2.idLong)
 
     // Who is playing the next step
     // True - P1 (red) || False - P2 (green)
@@ -232,6 +233,7 @@ class TTTGame(
 
     private suspend fun botMove() {
         delay(1.seconds)
+        if (winner != null) return
         val pos = bot?.getMove(fields)!!
         fields[pos.first][pos.second] = FieldsTwoPlayer.PLAYER_2
         interact(listOf(pos.first.toString(), pos.second.toString()), member2, null)
@@ -239,7 +241,16 @@ class TTTGame(
 
     override suspend fun setWinner(win: FieldsTwoPlayer) {
         winner = win
-        message.editMessageComponents(calcEmbed(calcButtons())).queueV2()
+        if (::message.isInitialized) message.editMessageComponents(calcEmbed(calcButtons())).queueV2()
+    }
+
+    override suspend fun surrender(surrenderer: Member) {
+        winner = when (surrenderer.idLong) {
+            member1.idLong -> FieldsTwoPlayer.PLAYER_2
+            member2.idLong -> FieldsTwoPlayer.PLAYER_1
+            else -> FieldsTwoPlayer.EMPTY
+        }
+        if (::message.isInitialized) message.editMessageComponents(calcEmbed(calcButtons())).queueV2()
     }
 
     init {

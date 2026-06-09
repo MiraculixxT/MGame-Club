@@ -50,6 +50,7 @@ class C4Game(
     seed: Long? = null
 ) : SimpleGame {
     override val startedAt: Long = System.currentTimeMillis()
+    override val playerIds: Set<Long> = setOf(member1.idLong, member2.idLong)
 
     private lateinit var member1Emote: String
     private lateinit var member2Emote: String
@@ -199,12 +200,27 @@ class C4Game(
 
     override suspend fun setWinner(win: FieldsTwoPlayer) {
         winner = win
-        message.editMessageComponents(calcEmbed(true, calcButtons())).queueV2()
-        thread.delete().queue()
+        if (::message.isInitialized && ::member1Emote.isInitialized && ::member2Emote.isInitialized) {
+            message.editMessageComponents(calcEmbed(true, calcButtons())).queueV2()
+        }
+        if (::thread.isInitialized) thread.delete().queue()
+    }
+
+    override suspend fun surrender(surrenderer: Member) {
+        winner = when (surrenderer.idLong) {
+            member1.idLong -> FieldsTwoPlayer.PLAYER_2
+            member2.idLong -> FieldsTwoPlayer.PLAYER_1
+            else -> FieldsTwoPlayer.EMPTY
+        }
+        if (::message.isInitialized && ::member1Emote.isInitialized && ::member2Emote.isInitialized) {
+            message.editMessageComponents(calcEmbed(true, calcButtons())).queueV2()
+        }
+        if (::thread.isInitialized) thread.delete().queue()
     }
 
     private suspend fun botMove() {
         delay(1.seconds)
+        if (winner != null) return
         val nextColumn = bot?.getNextMove(fields) ?: return
         val columns = (0..6).map { i -> (0..5).map { j -> fields[j][i] } }
         val column = columns[nextColumn]

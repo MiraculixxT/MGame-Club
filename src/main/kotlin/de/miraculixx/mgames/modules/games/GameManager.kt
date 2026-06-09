@@ -7,6 +7,7 @@ import de.miraculixx.mgames.modules.games.utils.FieldsTwoPlayer
 import de.miraculixx.mgames.modules.games.utils.enums.Game
 import de.miraculixx.mgames.modules.games.utils.SimpleGame
 import de.miraculixx.mgames.utils.Color
+import de.miraculixx.mgames.utils.botID
 import de.miraculixx.mgames.utils.log
 import dev.minn.jda.ktx.coroutines.await
 import net.dv8tion.jda.api.entities.Guild
@@ -23,6 +24,7 @@ object GameManager {
     //Running Games
     // HashMap<GuildID, Map<GameType, HashMap<GameID, GameInstance>>>
     private val guilds = HashMap<Long, MutableMap<Game, HashMap<UUID, SimpleGame>>>()
+    private val botSnowflake = botID.toLongOrNull()
 
     fun searchGame(hook: InteractionHook, member: Member, gameTag: String, gameName: String) {
         hook.editOriginal(
@@ -56,17 +58,19 @@ object GameManager {
         botLevel: Int = 0,
         daily: Boolean = false,
         seed: Long? = null
-    ) {
+    ): Boolean {
         val gameMap = getGameMap(guild, game)
-        val member1 = guild.retrieveMemberById(members.first).await() ?: return
-        val member2 = guild.retrieveMemberById(members.second).await() ?: return
+        val member1 = guild.retrieveMemberById(members.first).await() ?: return false
+        val member2 = guild.retrieveMemberById(members.second).await() ?: return false
+        if (findSimilarGame(guild.idLong, game, setOf(member1.idLong, member2.idLong)) != null) return false
         val uuid = UUID.randomUUID()
 
         gameMap[uuid] = when (game) {
             Game.TIC_TAC_TOE -> TTTGame(member1, member2, uuid, channelID, guild, botLevel, daily, seed)
             Game.CONNECT_4 -> C4Game(member1, member2, uuid, guild, channelID, botLevel, daily, seed)
-            else -> return
+            else -> return false
         }
+        return true
     }
 
     fun getGame(guildID: Long, type: Game, uuid: UUID): SimpleGame? {
@@ -77,6 +81,23 @@ object GameManager {
         return guilds[guildID]?.get(type)?.remove(uuid) != null
     }
 
+    fun findSimilarGame(guildID: Long, type: Game, players: Set<Long>): ActiveGame? {
+        val games = guilds[guildID]?.get(type) ?: return null
+        return games.entries.firstOrNull { (_, instance) ->
+            isSimilarGame(instance.playerIds, players)
+        }?.let { (uuid, instance) ->
+            ActiveGame(uuid, instance.playerIds)
+        }
+    }
+
+    suspend fun surrenderGame(guildID: Long, type: Game, uuid: UUID, surrenderer: Member): Boolean {
+        val game = guilds[guildID]?.get(type)?.get(uuid) ?: return false
+        if (surrenderer.idLong !in game.playerIds) return false
+        game.surrender(surrenderer)
+        removeGame(guildID, type, uuid)
+        return true
+    }
+
     private fun getGameMap(guild: Guild, game: Game): HashMap<UUID, SimpleGame> {
         val mGuild = guilds[guild.idLong] ?: run {
             val emptyGuild = Game.entries.associateWith { hashMapOf<UUID, SimpleGame>() }.toMutableMap()
@@ -84,6 +105,21 @@ object GameManager {
             emptyGuild
         }
         return mGuild.getOrPut(game) { hashMapOf() }
+    }
+
+    private fun isSimilarGame(existingPlayers: Set<Long>, requestedPlayers: Set<Long>): Boolean {
+        val bot = botSnowflake
+        val existingHasBot = bot != null && bot in existingPlayers
+        val requestedHasBot = bot != null && bot in requestedPlayers
+
+        return if (existingHasBot || requestedHasBot) {
+            humanPlayers(existingPlayers).intersect(humanPlayers(requestedPlayers)).isNotEmpty()
+        } else existingPlayers == requestedPlayers
+    }
+
+    private fun humanPlayers(players: Set<Long>): Set<Long> {
+        val bot = botSnowflake ?: return players
+        return players - bot
     }
 
     fun cleanupOldInstances(maxAgeMillis: Long) {
@@ -113,4 +149,6 @@ object GameManager {
         }
         "---=---=---=---=---=---=---=---".log(Color.YELLOW)
     }
+
+    data class ActiveGame(val uuid: UUID, val playerIds: Set<Long>)
 }
