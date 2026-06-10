@@ -8,13 +8,9 @@ import de.miraculixx.mgames.utils.entities.SlashCommandEvent
 import de.miraculixx.mgames.utils.notify
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.messages.Embed
-import net.dv8tion.jda.api.Permission
-import net.dv8tion.jda.api.components.actionrow.ActionRow
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
-import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import net.dv8tion.jda.api.exceptions.InsufficientPermissionException
-import net.dv8tion.jda.api.components.buttons.Button
 
 class SetupCommand : SlashCommandEvent {
     override suspend fun trigger(it: SlashCommandInteractionEvent) {
@@ -34,7 +30,7 @@ class SetupCommand : SlashCommandEvent {
                             return
                         }
                         try {
-                            if (target.getHistoryFromBeginning(10).await().size() != 0) {
+                            if (target.getHistoryFromBeginning(10).await().size() > 3) {
                                 hook.editOriginal("```diff\n- This Channel has to much traffic! Please choose an empty Channel to setup```").queue()
                                 return
                             }
@@ -47,16 +43,39 @@ class SetupCommand : SlashCommandEvent {
                             e.notify(hook)
                         }
                     } else {
-                        hook.editOriginal("```diff\n- Your Guild does not own Premium!\n- Activate it in MCreate (Bots Master-Guild) or get it on our Webshop!```")
-                            .setComponents(
-                                ActionRow.of(
-                                    Button.link("https://discord.gg/VEcR8RbnSH", "MCreate").withEmoji(Emoji.fromFormatted("<:mutils:975780449903341579>")),
-                                    Button.link("https://miraculixx.de/mcreate/shop", "Webshop").withEmoji(Emoji.fromUnicode("\uD83D\uDED2"))
-                                )
-                            )
-                            .queue()
+                        hook.editOriginal("```diff\n- Not allowed in your guild!```").queue()
                         return
                     }
+                }
+            }
+            "refresh-leaderboard" -> {
+                val guild = it.guild ?: return
+                it.deferReply(true).queue()
+                val hook = it.hook
+                val data = SQL.getGuild(guild.idLong)
+
+                if (!data.premium) {
+                    hook.editOriginal("```diff\n- Not allowed in your guild```").queue()
+                    return
+                }
+
+                if (data.statsChannel == 0L) {
+                    hook.editOriginal("```diff\n- No stats channel is configured.\n- Use /setup channel stats-channel first.```").queue()
+                    return
+                }
+
+                val channel = guild.getTextChannelById(data.statsChannel)
+                if (channel == null) {
+                    UpdaterGame.updateLeaderboardGuild(guild, null)
+                    hook.editOriginal("```diff\n- The configured stats channel no longer exists.\n- Please configure a new stats channel.```").queue()
+                    return
+                }
+
+                try {
+                    UpdaterGame.updateLeaderboardGuild(guild, channel)
+                    hook.editOriginal("```diff\n+ Leaderboard refresh started for ${channel.asMention}.```").queue()
+                } catch (e: InsufficientPermissionException) {
+                    e.notify(hook)
                 }
             }
             "language" -> {

@@ -11,6 +11,7 @@ import de.miraculixx.mgames.modules.games.utils.enums.Game
 import de.miraculixx.mgames.modules.games.utils.enums.GameMode
 import de.miraculixx.mgames.utils.Colors
 import de.miraculixx.mgames.utils.Icons
+import de.miraculixx.mgames.utils.api.SQL
 import de.miraculixx.mgames.utils.extensions.awaitV2
 import de.miraculixx.mgames.utils.extensions.queueV2
 import de.miraculixx.mgames.utils.log
@@ -130,7 +131,9 @@ class TTTGame(
             FieldsTwoPlayer.EMPTY -> if (!daily) {
                 GoalManager.registerGameHistory(
                     Game.TIC_TAC_TOE,
-                    if (bot != null) listOf(member1.idLong) else listOf(member1.idLong, member2.idLong)
+                    guildID,
+                    if (bot != null) listOf(member1.idLong) else listOf(member1.idLong, member2.idLong),
+                    SQL.GameResult.DRAW
                 )
             }
             FieldsTwoPlayer.PLAYER_1 -> {

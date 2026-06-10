@@ -259,7 +259,9 @@ class C4Game(
                             if (!daily) {
                                 GoalManager.registerGameHistory(
                                     Game.CONNECT_4,
-                                    if (bot != null) listOf(member1.idLong) else listOf(member1.idLong, member2.idLong)
+                                    guildID,
+                                    if (bot != null) listOf(member1.idLong) else listOf(member1.idLong, member2.idLong),
+                                    SQL.GameResult.DRAW
                                 )
                             }
                             msg("draw", guildID)

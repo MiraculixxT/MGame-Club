@@ -28,7 +28,14 @@ object GoalManager {
     ): Int {
         val coins = game.coinValue * difficultyMultiplier.coerceIn(1, 3)
         CoroutineScope(Dispatchers.Default).launch {
-            registerGameHistory(game, listOfNotNull(winnerSnowflake, loserSnowflake))
+            SQL.addGameHistory(
+                guildSnowflake,
+                game,
+                buildMap {
+                    winnerSnowflake?.let { put(it, SQL.GameResult.WIN) }
+                    loserSnowflake?.let { put(it, SQL.GameResult.LOSS) }
+                }
+            )
             val difficulty = if (mode == GameMode.BOT) difficultyMultiplier.coerceIn(1, 3) else 0
             winnerSnowflake?.let {
                 SQL.addGameStats(it, game, mode, difficulty, won = true)
@@ -41,8 +48,8 @@ object GoalManager {
         return coins
     }
 
-    suspend fun registerGameHistory(game: Game, users: Collection<Long>) {
-        SQL.addGameHistory(game, users)
+    suspend fun registerGameHistory(game: Game, guildSnowflake: Long, users: Collection<Long>, result: SQL.GameResult) {
+        SQL.addGameHistory(guildSnowflake, game, users.distinct().associateWith { result })
     }
 
     suspend fun registerDailyCompletion(

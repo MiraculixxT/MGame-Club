@@ -43,10 +43,15 @@ CREATE TABLE IF NOT EXISTS userStats (
 
 CREATE TABLE IF NOT EXISTS gameHistory (
     Played_At BIGINT NOT NULL,
+    Guild_ID BIGINT NOT NULL,
     Game_ID TINYINT UNSIGNED NOT NULL,
     Discord_ID BIGINT NOT NULL,
+    Result TINYINT UNSIGNED NOT NULL,
+    Match_ID VARCHAR(36) NOT NULL,
+    INDEX idx_history_guild_time (Guild_ID, Played_At),
     INDEX idx_history_game_time (Game_ID, Played_At),
-    INDEX idx_history_user_time (Discord_ID, Played_At)
+    INDEX idx_history_user_time (Discord_ID, Played_At),
+    INDEX idx_history_match (Guild_ID, Match_ID)
 );
 
 CREATE TABLE IF NOT EXISTS userDailyPlay (

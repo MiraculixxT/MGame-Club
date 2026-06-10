@@ -100,6 +100,7 @@ object SlashCommandManager {
                     addOption(OptionType.CHANNEL, "stats-channel", "Setup current channel your stats channel? (PREMIUM ONLY)", false)
                     addOption(OptionType.CHANNEL, "game-channel", "Setup current channel to a Only-Gaming channel?", false)
                 }
+                subcommand("refresh-leaderboard", "Refresh the configured leaderboard message")
                 subcommand("language", "Change the bot language for this guild") {
                     addOption(OptionType.STRING, "lang", "Choose your preferred bot language", true, true)
                 }

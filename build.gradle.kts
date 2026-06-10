@@ -23,7 +23,9 @@ dependencies {
     //JetBrains Libraries
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.10.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
-    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.8.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1-0.6.x-compat")
+    implementation("org.jetbrains.kotlinx:kandy-lets-plot:0.8.4")
+    implementation("org.jetbrains.kotlinx:dataframe-core:1.0.0-Beta5")
     implementation("org.apache.commons:commons-text:1.15.0")
     //implementation(compose.desktop.linux_x64)
 

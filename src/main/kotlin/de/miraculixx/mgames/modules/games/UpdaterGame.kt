@@ -1,23 +1,28 @@
 package de.miraculixx.mgames.modules.games
 
-import de.miraculixx.mgames.modules.games.utils.enums.Game
 import de.miraculixx.mgames.modules.trivia.ensureDailyTriviaQuestion
-import de.miraculixx.mgames.utils.Color
+import de.miraculixx.mgames.utils.Color as LogColor
+import de.miraculixx.mgames.utils.Colors
+import de.miraculixx.mgames.utils.Icons
 import de.miraculixx.mgames.utils.api.SQL
 import de.miraculixx.mgames.utils.log
-import dev.minn.jda.ktx.messages.Embed
-import dev.minn.jda.ktx.messages.edit
-import dev.minn.jda.ktx.messages.send
+import dev.minn.jda.ktx.interactions.components.Container
 import kotlinx.coroutines.*
+import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.minus
 import kotlinx.datetime.toLocalDateTime
+import net.dv8tion.jda.api.components.MessageTopLevelComponent
+import net.dv8tion.jda.api.components.mediagallery.MediaGallery
+import net.dv8tion.jda.api.components.mediagallery.MediaGalleryItem
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.entities.Guild
 import net.dv8tion.jda.api.entities.MessageHistory
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
 import net.dv8tion.jda.api.exceptions.InsufficientPermissionException
-import java.sql.ResultSet
+import net.dv8tion.jda.api.utils.FileUpload
 import kotlin.time.Clock
+import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
@@ -55,19 +60,19 @@ object UpdaterGame {
     }
 
     suspend fun updateDailyPlays() {
-        "---=---> DAILY UPDATE <---=---".log(Color.YELLOW)
+        "---=---> DAILY UPDATE <---=---".log(LogColor.YELLOW)
         val seed = GoalManager.getDailySeed()
         updateDailyTriviaQuestion()
-        " - Daily seed: $seed".log(Color.YELLOW)
+        " - Daily seed: $seed".log(LogColor.YELLOW)
     }
 
     private suspend fun updateDailyTriviaQuestion() {
         runCatching { ensureDailyTriviaQuestion() }
-            .onFailure { " - Daily trivia preload failed: ${it.message}".log(Color.YELLOW) }
+            .onFailure { " - Daily trivia preload failed: ${it.message}".log(LogColor.YELLOW) }
     }
 
     private fun updateLeaderboards() = runBlocking {
-        "---=---> STATS UPDATE <---=---".log(Color.YELLOW)
+        "---=---> STATS UPDATE <---=---".log(LogColor.YELLOW)
         val call = SQL.call("SELECT Stats_Channel, Discord_ID FROM guildData WHERE Premium=1 && Stats_Channel!=0")
 
         var counter = 0
@@ -82,78 +87,83 @@ object UpdaterGame {
             }
         }
 
-        "Finished checking $counter Guilds".log(Color.YELLOW)
-        "---=---=---=---=---=---=---=---".log(Color.YELLOW)
+        "Finished checking $counter Guilds".log(LogColor.YELLOW)
+        "---=---=---=---=---=---=---=---".log(LogColor.YELLOW)
     }
 
     suspend fun updateLeaderboardGuild(guild: Guild, statsChannel: MessageChannel?) {
         val guildID = guild.idLong
         if (statsChannel == null) {
             SQL.update("UPDATE guildData SET Stats_Channel=0 WHERE Discord_ID=$guildID")
-            " - GUILD REMOVE > $guildID deleted their stats channel".log(Color.YELLOW)
+            " - GUILD REMOVE > $guildID deleted their stats channel".log(LogColor.YELLOW)
             return
         }
-        val resp = SQL.call("SELECT Discord_ID, Total_Coins FROM userData WHERE Guild_ID=$guildID ORDER BY Total_Coins DESC LIMIT 10")
+        val dailyDate = GoalManager.currentDailyDate()
+        val topCoins = SQL.getTopTotalCoins(guildID)
+        val topStreaks = SQL.getTopDailyStreaks(guildID, listOf(dailyDate.toString(), dailyDate.minus(1, DateTimeUnit.DAY).toString()))
+        val since = Clock.System.now().minus(30.days).toEpochMilliseconds()
+        val dailyStats = LeaderboardGraph.aggregate(SQL.getGuildHistory(guildID, since))
+        val summary = LeaderboardGraph.summarize(dailyStats)
+        val graph = LeaderboardGraph.renderPng(dailyStats)
+        val nextUpdate = Clock.System.now().plus(1.hours).epochSeconds
+        val components = renderLeaderboard(guildID, topStreaks, topCoins, summary, graph, nextUpdate)
 
-        //Creating Embeds
         try {
-            val embed = listOf(
-                Embed {
-                    color = 0xc29113
-                    title = "\uD83D\uDC51  || LEADERBOARD"
-                    description = "Updates <t:${Clock.System.now().plus(1.hours).epochSeconds}:R>\n```fix\nWer ist der beste Zocker hier?```"
-                    field {
-                        name = "Total Coins :coin:"
-                        value = buildField(resp, false, "Total_Coins")
-                    }
-                    field {
-                        name = "Top 10"
-                        value = buildField(resp, true, "Total_Coins")
-                    }
-                },
-                Embed {
-                    color = 0xc29113
-                    field {
-                        val resp2 = SQL.call(
-                            "SELECT userData.Discord_ID, COALESCE(SUM(userStats.Wins), 0) AS Wins, COALESCE(SUM(userStats.Losses), 0) AS Losses " +
-                                "FROM userData LEFT JOIN userStats ON userStats.Discord_ID=userData.Discord_ID && userStats.Game_ID=${Game.TIC_TAC_TOE.id} " +
-                                "WHERE Guild_ID=$guildID GROUP BY userData.Discord_ID ORDER BY Wins DESC LIMIT 5"
-                        )
-                        name = "TTT Wins"
-                        value = buildField(resp2, false, "Wins", "Losses")
-                    }
-                    field {
-                        val resp2 = SQL.call(
-                            "SELECT userData.Discord_ID, COALESCE(SUM(userStats.Wins), 0) AS Wins, COALESCE(SUM(userStats.Losses), 0) AS Losses " +
-                                "FROM userData LEFT JOIN userStats ON userStats.Discord_ID=userData.Discord_ID && userStats.Game_ID=${Game.CONNECT_4.id} " +
-                                "WHERE Guild_ID=$guildID GROUP BY userData.Discord_ID ORDER BY Wins DESC LIMIT 5"
-                        )
-                        name = "C4 Wins"
-                        value = buildField(resp2, true, "Wins", "Losses")
-                    }
-                }
-            )
-
-            //Sending information to Discord
             statsChannel.getHistoryFromBeginning(10).queue { history: MessageHistory ->
-                if (history.isEmpty || history.retrievedHistory[0].author.id != JDA!!.selfUser.id)
-                    statsChannel.send(embeds = embed).queue()
-                else history.retrievedHistory[0].edit(embeds = embed).queue()
+                val current = history.retrievedHistory.firstOrNull { it.author.id == JDA!!.selfUser.id }
+                if (current == null) {
+                    statsChannel.sendMessageComponents(components).useComponentsV2().queue()
+                } else {
+                    current.editMessageComponents(components)
+                        .setReplace(true)
+                        .useComponentsV2()
+                        .queue()
+                }
             }
         } catch (e: InsufficientPermissionException) {
-            " - NO PERMISSION > Guild $guildID".log(Color.YELLOW)
+            " - NO PERMISSION > Guild $guildID".log(LogColor.YELLOW)
         }
     }
 
-    private fun buildField(response: ResultSet, inline: Boolean, key: String, key2: String? = null): String {
-        return buildString {
-            val m = if (inline) "> " else ""
-            repeat(5) {
-                if (response.next()) {
-                    val addon = if (key2 != null) " | ${response.getString(key2)}" else ""
-                    append("$m<@${response.getString("Discord_ID")}> - ${response.getString(key)}$addon\n")
-                } else append("$m*Empty*\n")
+    private fun renderLeaderboard(
+        guildID: Long,
+        topStreaks: List<SQL.LeaderboardEntry>,
+        topCoins: List<SQL.LeaderboardEntry>,
+        summary: LeaderboardGraph.Summary,
+        graph: ByteArray,
+        nextUpdate: Long
+    ): List<MessageTopLevelComponent> {
+        val graphUpload = FileUpload.fromData(graph, "mgames-leaderboard-$guildID.png")
+            .setDescription("MGame Club activity graph for the last 30 days")
+
+        return listOf(
+            Container(accentColor = Colors.yellow) {
+                text("## \uD83D\uDC51 || LEADERBOARD")
+                text(
+                    "> Updates <t:$nextUpdate:R>\n" +
+                        "> ${summary.played} games | ${summary.wins} wins | ${summary.losses} losses | " +
+                        "${summary.draws} draws | ${summary.winRate}% win rate"
+                )
+                separator()
+                text("### \uD83D\uDD25 || Highest Streaks\n${formatLeaderboard(topStreaks, "days")}")
+                text("### ${Icons.mCoins} || Highest Coins\n${formatLeaderboard(topCoins, "coins")}")
+                separator()
+                components += MediaGallery.of(
+                    MediaGalleryItem.fromFile(graphUpload)
+                        .withDescription("Game activity graph for the last 30 days")
+                )
             }
-        }
+        )
+    }
+
+    private fun formatLeaderboard(entries: List<SQL.LeaderboardEntry>, unit: String): String {
+        if (entries.isEmpty()) return "> *Empty*\n> *Empty*\n> *Empty*"
+        return buildString {
+            repeat(3) { index ->
+                val entry = entries.getOrNull(index)
+                if (entry == null) append("> *Empty*\n")
+                else append("> **#${index + 1}** <@${entry.discordID}> - ${entry.value} $unit\n")
+            }
+        }.trimEnd()
     }
 }

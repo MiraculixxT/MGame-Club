@@ -11,6 +11,7 @@ import kotlinx.coroutines.delay
 import java.sql.Connection
 import java.sql.DriverManager
 import java.sql.ResultSet
+import java.util.UUID
 import kotlin.math.abs
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -27,6 +28,51 @@ object SQL {
             ">> Connection established to MariaDB".log(Color.GREEN)
         else ">> ERROR > MariaDB refused the connection".error()
         return con
+    }
+
+    private fun ensureSchema() {
+        val statements = listOf(
+            "ALTER TABLE gameHistory ADD COLUMN IF NOT EXISTS Guild_ID BIGINT NOT NULL DEFAULT 0 AFTER Played_At",
+            "ALTER TABLE gameHistory ADD COLUMN IF NOT EXISTS Result TINYINT UNSIGNED NOT NULL DEFAULT 4 AFTER Discord_ID",
+            "ALTER TABLE gameHistory ADD COLUMN IF NOT EXISTS Match_ID VARCHAR(36) NOT NULL DEFAULT '' AFTER Result",
+            "CREATE INDEX IF NOT EXISTS idx_history_guild_time ON gameHistory(Guild_ID, Played_At)",
+            "CREATE INDEX IF NOT EXISTS idx_history_match ON gameHistory(Guild_ID, Match_ID)"
+        )
+        statements.forEach { statement ->
+            connection.prepareStatement(statement).use { it.executeUpdate() }
+        }
+
+        if (columnExists("userDailyPlay", "Guild_ID")) {
+            connection.prepareStatement("DROP TEMPORARY TABLE IF EXISTS userDailyPlay_global").use { it.executeUpdate() }
+            connection.prepareStatement(
+                "CREATE TEMPORARY TABLE userDailyPlay_global AS " +
+                    "SELECT daily.Discord_ID, daily.Game, daily.Last_Play_Date, MAX(daily.Streak) AS Streak " +
+                    "FROM userDailyPlay daily " +
+                    "INNER JOIN (" +
+                    "SELECT Discord_ID, Game, MAX(Last_Play_Date) AS Last_Play_Date FROM userDailyPlay GROUP BY Discord_ID, Game" +
+                    ") latest ON latest.Discord_ID=daily.Discord_ID && latest.Game=daily.Game && latest.Last_Play_Date=daily.Last_Play_Date " +
+                    "GROUP BY daily.Discord_ID, daily.Game, daily.Last_Play_Date"
+            ).use { it.executeUpdate() }
+            connection.prepareStatement("DELETE FROM userDailyPlay").use { it.executeUpdate() }
+            connection.prepareStatement("ALTER TABLE userDailyPlay DROP PRIMARY KEY").use { it.executeUpdate() }
+            connection.prepareStatement("ALTER TABLE userDailyPlay DROP COLUMN Guild_ID").use { it.executeUpdate() }
+            connection.prepareStatement("ALTER TABLE userDailyPlay ADD PRIMARY KEY (Discord_ID, Game)").use { it.executeUpdate() }
+            connection.prepareStatement(
+                "INSERT INTO userDailyPlay (Discord_ID, Game, Last_Play_Date, Streak) " +
+                    "SELECT Discord_ID, Game, Last_Play_Date, Streak FROM userDailyPlay_global"
+            ).use { it.executeUpdate() }
+            connection.prepareStatement("DROP TEMPORARY TABLE IF EXISTS userDailyPlay_global").use { it.executeUpdate() }
+        }
+    }
+
+    private fun columnExists(table: String, column: String): Boolean {
+        connection.prepareStatement(
+            "SELECT COUNT(*) AS Columns FROM information_schema.COLUMNS " +
+                "WHERE TABLE_SCHEMA=DATABASE() && TABLE_NAME='$table' && COLUMN_NAME='$column'"
+        ).use { statement ->
+            val result = statement.executeQuery()
+            return result.next() && result.getInt("Columns") > 0
+        }
     }
 
     suspend fun call(statement: String, resultSet: Int? = null): ResultSet {
@@ -161,9 +207,67 @@ object SQL {
         )
     }
 
-    suspend fun addGameHistory(game: Game, users: Collection<Long>, timestamp: Long = System.currentTimeMillis()) {
-        users.distinct().forEach { userSnowflake ->
-            update("INSERT INTO gameHistory (Played_At, Game_ID, Discord_ID) VALUES ($timestamp, ${game.id}, $userSnowflake)")
+    suspend fun addGameHistory(
+        guildSnowflake: Long,
+        game: Game,
+        results: Map<Long, GameResult>,
+        timestamp: Long = System.currentTimeMillis(),
+        matchID: String = UUID.randomUUID().toString()
+    ) {
+        val escapedMatchID = matchID.replace("'", "''")
+        results.forEach { (userSnowflake, result) ->
+            update(
+                "INSERT INTO gameHistory (Played_At, Guild_ID, Game_ID, Discord_ID, Result, Match_ID) " +
+                    "VALUES ($timestamp, $guildSnowflake, ${game.id}, $userSnowflake, ${result.id}, '$escapedMatchID')"
+            )
+        }
+    }
+
+    suspend fun getTopTotalCoins(guildSnowflake: Long, limit: Int = 3): List<LeaderboardEntry> {
+        val safeLimit = limit.coerceIn(1, 10)
+        val response = call(
+            "SELECT Discord_ID, Total_Coins FROM userData " +
+                "WHERE Guild_ID=$guildSnowflake ORDER BY Total_Coins DESC LIMIT $safeLimit"
+        )
+        return buildList {
+            while (response.next()) {
+                add(LeaderboardEntry(response.getLong("Discord_ID"), response.getInt("Total_Coins")))
+            }
+        }
+    }
+
+    suspend fun getTopDailyStreaks(guildSnowflake: Long, validDates: Collection<String>, limit: Int = 3): List<LeaderboardEntry> {
+        val safeLimit = limit.coerceIn(1, 10)
+        if (validDates.isEmpty()) return emptyList()
+        val dates = validDates.joinToString(",") { "'${it.replace("'", "''")}'" }
+        val response = call(
+            "SELECT userDailyPlay.Discord_ID, MAX(userDailyPlay.Streak) AS Streak " +
+                "FROM userDailyPlay INNER JOIN userData ON userData.Discord_ID=userDailyPlay.Discord_ID " +
+                "WHERE userData.Guild_ID=$guildSnowflake && userDailyPlay.Last_Play_Date IN ($dates) " +
+                "GROUP BY userDailyPlay.Discord_ID ORDER BY Streak DESC LIMIT $safeLimit"
+        )
+        return buildList {
+            while (response.next()) {
+                add(LeaderboardEntry(response.getLong("Discord_ID"), response.getInt("Streak")))
+            }
+        }
+    }
+
+    suspend fun getGuildHistory(guildSnowflake: Long, sinceMillis: Long): List<GameHistoryEntry> {
+        val response = call(
+            "SELECT Played_At, Match_ID, Result FROM gameHistory " +
+                "WHERE Guild_ID=$guildSnowflake && Played_At >= $sinceMillis ORDER BY Played_At ASC"
+        )
+        return buildList {
+            while (response.next()) {
+                add(
+                    GameHistoryEntry(
+                        response.getLong("Played_At"),
+                        response.getString("Match_ID"),
+                        GameResult.from(response.getInt("Result"))
+                    )
+                )
+            }
         }
     }
 
@@ -212,7 +316,10 @@ object SQL {
         }
 
         val escapedGame = game.replace("'", "''")
-        val existing = call("SELECT Last_Play_Date, Streak FROM userDailyPlay WHERE Discord_ID=$userSnowflake && Game='$escapedGame'")
+        val existing = call(
+            "SELECT Last_Play_Date, Streak FROM userDailyPlay " +
+                "WHERE Discord_ID=$userSnowflake && Game='$escapedGame'"
+        )
         if (existing.next()) {
             val lastPlay = existing.getString("Last_Play_Date")
             if (lastPlay == date) {
@@ -229,19 +336,28 @@ object SQL {
             return DailyPlayResult(true, nextStreak, reward)
         }
 
-        update("INSERT INTO userDailyPlay (Discord_ID, Game, Last_Play_Date, Streak) VALUES ($userSnowflake, '$escapedGame', '$date', 1)")
+        update(
+            "INSERT INTO userDailyPlay (Discord_ID, Game, Last_Play_Date, Streak) " +
+                "VALUES ($userSnowflake, '$escapedGame', '$date', 1)"
+        )
         addCoins(userSnowflake, guildSnowflake, reward)
         return DailyPlayResult(true, 1, reward)
     }
 
     suspend fun hasCompletedDailyPlay(userSnowflake: Long, game: String, date: String): Boolean {
         val escapedGame = game.replace("'", "''")
-        val existing = call("SELECT Last_Play_Date FROM userDailyPlay WHERE Discord_ID=$userSnowflake && Game='$escapedGame'")
+        val existing = call(
+            "SELECT Last_Play_Date FROM userDailyPlay " +
+                "WHERE Discord_ID=$userSnowflake && Game='$escapedGame'"
+        )
         return existing.next() && existing.getString("Last_Play_Date") == date
     }
 
     private suspend fun getDailyPlays(userSnowflake: Long): List<UserDailyPlay> {
-        val dailyData = call("SELECT Game, Last_Play_Date, Streak FROM userDailyPlay WHERE Discord_ID=$userSnowflake")
+        val dailyData = call(
+            "SELECT Game, Last_Play_Date, Streak FROM userDailyPlay " +
+                "WHERE Discord_ID=$userSnowflake"
+        )
         return buildList {
             while (dailyData.next()) {
                 add(
@@ -267,6 +383,21 @@ object SQL {
 
     data class DailyPlayResult(val completed: Boolean, val streak: Int, val reward: Int)
 
+    data class LeaderboardEntry(val discordID: Long, val value: Int)
+
+    data class GameHistoryEntry(val playedAt: Long, val matchID: String, val result: GameResult)
+
+    enum class GameResult(val id: Int) {
+        WIN(1),
+        LOSS(2),
+        DRAW(3),
+        PLAYED(4);
+
+        companion object {
+            fun from(id: Int): GameResult = entries.firstOrNull { it.id == id } ?: PLAYED
+        }
+    }
+
     /**
      * @param id Discord User ID
      * @param coins Amount of spendable Coins
@@ -284,5 +415,6 @@ object SQL {
 
     init {
         connection = connect()
+        ensureSchema()
     }
 }
