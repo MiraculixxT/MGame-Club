@@ -26,6 +26,7 @@ import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEve
 import org.apache.commons.text.StringEscapeUtils
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
+import kotlin.random.Random
 
 class TriviaCommand : SlashCommandEvent {
     override suspend fun trigger(it: SlashCommandInteractionEvent) {
@@ -111,7 +112,7 @@ object TriviaMessage {
     }
 
     suspend fun createReplayQuestion(game: TriviaGameData, userID: String): TriviaGameData {
-        return createQuestion(game.actualCategory, game.actualDifficulty, userID)
+        return createQuestion(game.requestedCategory, game.requestedDifficulty, userID)
     }
 
     fun reveal(game: TriviaGameData, selectedAnswerID: Int, reward: Int): TriviaGameData {
@@ -139,7 +140,7 @@ object TriviaMessage {
                 components += ActionRow.of(
                     game.answers.map { answer ->
                         val button = if (game.booleanQuestion) {
-                            val emoji = if (answer.id == 1) Emoji.fromFormatted(Icons.yes)
+                            val emoji = if (answer.label.lowercase() == "true") Emoji.fromFormatted(Icons.yes)
                             else Emoji.fromFormatted(Icons.no)
                             button("TRIVIA:${game.userID}:${game.gameID}:${if (game.daily) "DAILY" else "PLAY"}:${answer.id}", answer.label, emoji)
                         } else {
@@ -153,10 +154,11 @@ object TriviaMessage {
                             !success && answer.id == 1 -> button.asDisabled().withStyle(ButtonStyle.PRIMARY)
                             else -> button.asDisabled()
                         }
-                    }
+                    }.shuffled(Random(game.gameID.hashCode()))
                 )
 
                 game.result?.reward?.let {
+                    if (it <= 0) return@let
                     text("-# Von <@${game.userID}>${coinGrantFooter(it)}")
                 }
             }
@@ -217,9 +219,9 @@ object TriviaMessage {
     private fun buildDescription(game: TriviaGameData): String {
         val result = game.result
         val color = when (result?.selectedAnswerID) {
-            1 -> Ansi.textGreen + Ansi.bold + "✓ " + Ansi.reset + Ansi.textGreen
-            null -> Ansi.textWhite
-            else -> Ansi.textRed + Ansi.bold + "✗ " + Ansi.reset + Ansi.textRed
+            1 -> Ansi.textGreen + Ansi.bold + "✓ "
+            null -> Ansi.textWhite + Ansi.bold
+            else -> Ansi.textRed + Ansi.bold + "✗ "
         }
 
         return "> Difficulty >> ``${game.actualDifficulty.title}${if (game.requestedDifficulty == TriviaDifficulty.RANDOM) " (random)" else ""}``\n" +

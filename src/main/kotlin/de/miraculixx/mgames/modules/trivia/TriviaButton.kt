@@ -65,6 +65,7 @@ class TriviaButton : ButtonEvent {
                 loserSnowflake = it.user.idLong,
                 guildSnowflake = guildID
             )
+            0
         } else -1
 
         val revealedGame = TriviaMessage.reveal(game, answerID, dailyResult?.reward ?: coins)
