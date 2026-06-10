@@ -6,6 +6,7 @@ import de.miraculixx.mgames.modules.games.GameManager
 import de.miraculixx.mgames.modules.games.GoalManager
 import de.miraculixx.mgames.modules.games.utils.FieldsTwoPlayer
 import de.miraculixx.mgames.modules.games.utils.SimpleGame
+import de.miraculixx.mgames.modules.games.utils.coinGrantFooter
 import de.miraculixx.mgames.modules.games.utils.enums.Game
 import de.miraculixx.mgames.modules.games.utils.enums.GameMode
 import de.miraculixx.mgames.utils.Colors
@@ -49,6 +50,8 @@ class TTTGame(
     private val difficultyMultiplier = botLevel.coerceIn(1, 3)
     private var whoPlays = random.nextBoolean()
     private var winner: FieldsTwoPlayer? = null
+    private var coinRecipient: Long? = null
+    private var coinReward = 0
     private lateinit var message: Message
     private val fields = Array(3) {
         (1..3).map { FieldsTwoPlayer.EMPTY }.toTypedArray()
@@ -92,7 +95,7 @@ class TTTGame(
                         else member2.asMention)
                 separator()
                 val message = when (winner) {
-                    FieldsTwoPlayer.EMPTY -> "Draw"
+                    FieldsTwoPlayer.EMPTY -> msg("draw", guildID)
                     FieldsTwoPlayer.PLAYER_1 -> "${member1.asMention} ${msg("win", guildID)}"
                     FieldsTwoPlayer.PLAYER_2 -> "${member2.asMention} ${msg("win", guildID)}"
                     null -> {
@@ -113,6 +116,9 @@ class TTTGame(
                     }
                 } else text("> $message")
                 components += buttons
+                if (coinRecipient != null && coinReward > 0) {
+                    text("-# An <@$coinRecipient>${coinGrantFooter(coinReward)}")
+                }
             }
         )
     }
@@ -131,19 +137,21 @@ class TTTGame(
                     GoalManager.registerDailyCompletion(Game.TIC_TAC_TOE, member1.idLong, guildID, difficultyMultiplier)
                 } else null
                 if (!daily || dailyResult?.completed == true) {
-                    GoalManager.registerGameResult(
+                    coinRecipient = member1.idLong
+                    coinReward = GoalManager.registerGameResult(
                         Game.TIC_TAC_TOE,
                         if (bot != null) GameMode.BOT else GameMode.USER,
                         winnerSnowflake = member1.idLong,
                         loserSnowflake = if (bot == null) member2.idLong else null,
                         guildSnowflake = guildID,
                         difficultyMultiplier = difficultyMultiplier
-                    )
+                    ) + (dailyResult?.reward ?: 0)
                 }
             }
             FieldsTwoPlayer.PLAYER_2 -> {
                 if (bot == null) {
-                    GoalManager.registerGameResult(
+                    coinRecipient = member2.idLong
+                    coinReward = GoalManager.registerGameResult(
                         Game.TIC_TAC_TOE,
                         GameMode.USER,
                         winnerSnowflake = member2.idLong,

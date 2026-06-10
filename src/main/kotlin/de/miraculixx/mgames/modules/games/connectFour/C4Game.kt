@@ -8,6 +8,7 @@ import de.miraculixx.mgames.modules.games.GameManager
 import de.miraculixx.mgames.modules.games.GoalManager
 import de.miraculixx.mgames.modules.games.utils.FieldsTwoPlayer
 import de.miraculixx.mgames.modules.games.utils.SimpleGame
+import de.miraculixx.mgames.modules.games.utils.coinGrantFooter
 import de.miraculixx.mgames.modules.games.utils.enums.Game
 import de.miraculixx.mgames.modules.games.utils.enums.GameMode
 import de.miraculixx.mgames.utils.Colors
@@ -20,7 +21,6 @@ import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.interactions.components.Container
 import dev.minn.jda.ktx.interactions.components.TextDisplay
 import dev.minn.jda.ktx.interactions.components.button
-import dev.minn.jda.ktx.messages.Embed
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -63,6 +63,8 @@ class C4Game(
     private val difficultyMultiplier = botLevel.coerceIn(1, 3)
     private var whoPlays = random.nextBoolean()
     private var winner: FieldsTwoPlayer? = null
+    private var coinRecipient: Long? = null
+    private var coinReward = 0
     private lateinit var message: Message
     private lateinit var threadMessage: Message
     private lateinit var thread: ThreadChannel
@@ -109,6 +111,9 @@ class C4Game(
                 stringBuilder.append("\n> **║** ${Icons.one}${Icons.two}${Icons.three}${Icons.four}${Icons.five}${Icons.six}${Icons.seven} **║**")
                 text(stringBuilder.toString())
                 components += buttons
+                if (coinRecipient != null && coinReward > 0) {
+                    text("-# An <@$coinRecipient>${coinGrantFooter(coinReward)}")
+                }
             }
         )
     }
@@ -269,21 +274,23 @@ class C4Game(
                                 GoalManager.registerDailyCompletion(Game.CONNECT_4, member1.idLong, guildID, difficultyMultiplier)
                             } else null
                             if (!daily || dailyResult?.completed == true) {
-                                GoalManager.registerGameResult(
+                                coinRecipient = member1.idLong
+                                coinReward = GoalManager.registerGameResult(
                                     Game.CONNECT_4,
                                     if (bot != null) GameMode.BOT else GameMode.USER,
                                     winnerSnowflake = member1.idLong,
                                     loserSnowflake = if (bot == null) member2.idLong else null,
                                     guildSnowflake = guildID,
                                     difficultyMultiplier = difficultyMultiplier
-                                )
+                                ) + (dailyResult?.reward ?: 0)
                             }
                             "$member1Emote ${member1.asMention} ${msg("win", guildID)}"
                         }
 
                         FieldsTwoPlayer.PLAYER_2 -> {
                             if (bot == null) {
-                                GoalManager.registerGameResult(
+                                coinRecipient = member2.idLong
+                                coinReward = GoalManager.registerGameResult(
                                     Game.CONNECT_4,
                                     GameMode.USER,
                                     winnerSnowflake = member2.idLong,
