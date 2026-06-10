@@ -4,75 +4,60 @@ import de.miraculixx.mgames.modules.games.GoalManager
 import de.miraculixx.mgames.modules.games.utils.enums.Game
 import de.miraculixx.mgames.modules.games.utils.enums.GameMode
 import de.miraculixx.mgames.utils.entities.ButtonEvent
-import dev.minn.jda.ktx.messages.Embed
-import dev.minn.jda.ktx.messages.editMessage_
+import de.miraculixx.mgames.utils.extensions.queueV2
 import dev.minn.jda.ktx.messages.reply_
-import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
-import net.dv8tion.jda.api.components.actionrow.ActionRow
-import net.dv8tion.jda.api.components.buttons.Button
-import net.dv8tion.jda.api.components.buttons.ButtonStyle
 
 class TriviaButton : ButtonEvent {
     override suspend fun trigger(it: ButtonInteractionEvent) {
         val id = it.componentId
         val split = id.split(':')
         if (split.firstOrNull() != "TRIVIA") return
+        val ownerID = split.getOrNull(1) ?: return
         val userID = it.user.id
-        if (split[1] != userID) {
+        if (ownerID != userID) {
             it.reply_("```diff\n- This is not your Question!\n- Generate one with /trivia```", ephemeral = true).queue()
             return
         }
-        if (split[2] == "REPLAY") {
-            it.editButton(it.button.asDisabled()).queue()
-            val message = it.message
-            val embed = message.embeds.firstOrNull()
-            val gen = if (embed == null || embed.description == null) {
-                generateQuestion(TriviaCategory.RANDOM, TriviaDifficulty.RANDOM, userID)
-            } else {
-                val description = embed.description
-                val category =
-                    TriviaCategory.entries.firstOrNull { i -> description?.contains("``${i.title}``") == true }
-                val difficulty =
-                    TriviaDifficulty.entries.firstOrNull { i -> description?.contains("``${i.title}``") == true }
 
-                generateQuestion(
-                    category ?: TriviaCategory.RANDOM,
-                    difficulty ?: TriviaDifficulty.RANDOM,
-                    userID
-                )
-            }
-            message.editMessageEmbeds(listOf(gen.first)).setComponents(listOf(gen.second)).queue()
+        val gameID = split.getOrNull(2) ?: return
+        val game = TriviaMessage.get(userID)
+        if (game == null || game.gameID != gameID) {
+            it.reply_("```diff\n- This trivia question is outdated.\n- Generate a new one with /trivia```", ephemeral = true).queue()
             return
         }
-        val mode = split.getOrNull(2) ?: return
-        val answer = split.getOrNull(3) ?: split.getOrNull(2) ?: return
-        val daily = mode == "DAILY"
-        val success = answer == "1"
-        val isFalse = !success
+
+        if (split.getOrNull(3) == "REPLAY") {
+            it.deferEdit().queue()
+            val newGame = TriviaMessage.createReplayQuestion(game, userID)
+            TriviaMessage.remember(newGame)
+            it.message.editMessageComponents(TriviaMessage.render(newGame)).queueV2()
+            return
+        }
+
+        val answerID = split.getOrNull(4)?.toIntOrNull() ?: return
+        if (game.answers.none { answer -> answer.id == answerID } || game.result != null) {
+            it.reply_("```diff\n- This trivia question is outdated.\n- Generate a new one with /trivia```", ephemeral = true).queue()
+            return
+        }
+        val success = answerID == 1
         val guildID = it.guild?.idLong ?: return
-        if (daily && GoalManager.hasCompletedDaily(Game.TRIVIA, it.user.idLong)) {
+        if (game.daily && GoalManager.hasCompletedDaily(Game.TRIVIA, it.user.idLong)) {
             it.reply_("```diff\n- Daily Trivia wurde heute bereits abgeschlossen.```", ephemeral = true).queue()
             return
         }
-        val message = it.message
-        val components = message.components.first().asActionRow().buttons
-        val embed = message.embeds.first()
-        val replay = ActionRow.of(Button.primary("TRIVIA:$userID:REPLAY", "Replay").withEmoji(Emoji.fromUnicode("\uD83D\uDD01")))
-        val dailyDifficultyMultiplier = 2
-        val dailyResult = if (success && daily) {
-            GoalManager.registerDailyCompletion(Game.TRIVIA, it.user.idLong, guildID, dailyDifficultyMultiplier)
+        val dailyResult = if (success && game.daily) {
+            GoalManager.registerDailyCompletion(Game.TRIVIA, it.user.idLong, guildID)
         } else null
-        if (success && (!daily || dailyResult?.completed == true)) {
+        val coins = if (success && (!game.daily || dailyResult?.completed == true)) {
             GoalManager.registerGameResult(
                 Game.TRIVIA,
                 GameMode.SOLO,
                 winnerSnowflake = it.user.idLong,
                 loserSnowflake = null,
-                guildSnowflake = guildID,
-                difficultyMultiplier = if (daily) dailyDifficultyMultiplier else 1
+                guildSnowflake = guildID
             )
-        } else if (!daily && !success) {
+        } else if (!game.daily && !success) {
             GoalManager.registerGameResult(
                 Game.TRIVIA,
                 GameMode.SOLO,
@@ -80,39 +65,10 @@ class TriviaButton : ButtonEvent {
                 loserSnowflake = it.user.idLong,
                 guildSnowflake = guildID
             )
-        }
-        if (isFalse) {
+        } else -1
 
-            it.editMessage_(null, listOf(Embed {
-                title = embed.title
-                description = embed.description?.replace("```fix\n", "```diff\n- ")
-                color = 0xc21111
-            }), listOf(ActionRow.of(buildList {
-                components.forEach { com ->
-                    if (id == com.customId) add(com.asDisabled().withStyle(ButtonStyle.DANGER))
-                    else if (com.customId?.endsWith('1') == true) add(com.asDisabled().withStyle(ButtonStyle.PRIMARY))
-                    else add(com.asDisabled())
-                }
-            }), replay
-            )).queue()
-
-        } else {
-
-            it.editMessage_(null, listOf(Embed {
-                title = embed.title
-                description = embed.description?.replace(
-                    "```fix\n",
-                    "```diff\n+ "
-                ) + if (dailyResult != null) "\n> Daily Reward -> `${dailyResult.reward.takeIf { reward -> reward > 0 } ?: "already completed"}`" else ""
-                color = 0x00800f
-            }), listOf(ActionRow.of(buildList {
-                components.forEach { com ->
-                    if (id == com.customId) add(com.asDisabled().withStyle(ButtonStyle.SUCCESS))
-                    else add(com.asDisabled())
-                }
-            }), replay
-            )).queue()
-
-        }
+        val revealedGame = TriviaMessage.reveal(game, answerID, dailyResult?.reward ?: coins)
+        TriviaMessage.remember(revealedGame)
+        it.editComponents(TriviaMessage.render(revealedGame)).queueV2()
     }
 }

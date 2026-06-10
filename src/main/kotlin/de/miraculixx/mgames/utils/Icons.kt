@@ -8,12 +8,16 @@ object Icons {
     // Game generic
     const val x = "<:xx:988156472020066324>"
     const val o = "<:oo:988156473274163200>"
+    const val yes = "<:yes:998195646467145751>"
+    const val no = "<:no:998195603324551323>"
     const val goalFlag = "\uD83C\uDFC1"
     const val play = "𝗣𝗟𝗔𝗬"
+    const val replay = "\uD835\uDDE5\uD835\uDDD8\uD835\uDDE3\uD835\uDDDF\uD835\uDDD4\uD835\uDDEC"
 
     // Game specific
     const val tictactoe = "<:tictactoe:1513850555796029531>"
     const val connect4 = "<:connect4:1513978614138404975>"
+    const val trivia = "\uD83E\uDDE9"
 
 
     // Numbers
