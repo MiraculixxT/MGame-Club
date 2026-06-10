@@ -16,6 +16,7 @@ import de.miraculixx.mgames.utils.extensions.queueV2
 import de.miraculixx.mgames.utils.log
 import dev.minn.jda.ktx.events.getDefaultScope
 import dev.minn.jda.ktx.interactions.components.Container
+import dev.minn.jda.ktx.interactions.components.TextDisplay
 import dev.minn.jda.ktx.interactions.components.button
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -86,7 +87,10 @@ class TTTGame(
     private fun calcEmbed(buttons: List<ActionRow>): List<MessageTopLevelComponent> {
         return listOf(
             Container {
-                text("## ${Icons.tictactoe} || TIC TAC TOE")
+                val text = TextDisplay("## ${Icons.tictactoe} || TIC TAC TOE")
+                if (winner != null) {
+                    section(button("GAME_TTT_R_${member1.id}_${member2.id}_${bot?.level ?: 0}", Icons.play, style = ButtonStyle.PRIMARY), text)
+                } else components += text
                 separator()
                 text("${Icons.x} - Red ${member1.asMention}\n" +
                         "${Icons.o} - Green " +
@@ -110,10 +114,7 @@ class TTTGame(
                 }
                 if (winner != null) {
                     accentColorRaw = null
-                    section {
-                        accessory = button("GAME_TTT_R_${member1.id}_${member2.id}_${bot?.level ?: 0}", Icons.play, style = ButtonStyle.PRIMARY)
-                        text("${Icons.goalFlag} $message")
-                    }
+                    text("${Icons.goalFlag} $message")
                 } else text("> $message")
                 components += buttons
                 if (coinRecipient != null && coinReward > 0) {

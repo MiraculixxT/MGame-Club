@@ -77,12 +77,8 @@ class C4Game(
             Container {
                 val text = TextDisplay("## ${Icons.connect4} || ${msg("connect4", guildID)}")
                 if (done) {
-                    section(
-                        button("GAME_4G_R_${member1.id}_${member2.id}_${bot?.level ?: 0}", Icons.play, style = ButtonStyle.PRIMARY),
-                        listOf(text)
-                    )
-                }
-                else components += text
+                    section(button("GAME_4G_R_${member1.id}_${member2.id}_${bot?.level ?: 0}", Icons.play, style = ButtonStyle.PRIMARY), text)
+                } else components += text
                 separator()
                 text("$member1Emote - ${member1.asMention}\n" +
                         "$member2Emote - ${if (daily) "`Daily Challenge`" else if (bot != null) "`Bot Level ${bot!!.level}`" else member2.asMention}\n")
