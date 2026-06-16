@@ -11,3 +11,8 @@ suspend fun callCustomAPI(url: String): String {
     val response: HttpResponse = client.get(url)
     return response.bodyAsText()
 }
+
+suspend fun callCustomAPIBytes(url: String): ByteArray {
+    val response: HttpResponse = client.get(url)
+    return response.bodyAsBytes()
+}

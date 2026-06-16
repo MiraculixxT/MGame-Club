@@ -2,6 +2,7 @@ package de.miraculixx.mgames.utils.manager
 
 import de.miraculixx.mgames.Main
 import de.miraculixx.mgames.modules.games.connectFour.C4Command
+import de.miraculixx.mgames.modules.games.guessThe.GuessTheCommand
 import de.miraculixx.mgames.modules.games.quickMath.QuickMath
 import de.miraculixx.mgames.modules.games.quickMath.QuickMath.MathDifficulty
 import de.miraculixx.mgames.modules.games.tictactoe.TTTCommand
@@ -27,6 +28,7 @@ object SlashCommandManager {
         "tictactoe" to TTTCommand(),
         "connect-4" to C4Command(),
         "quick-math" to QuickMath,
+        "guess-the" to GuessTheCommand,
         "setup" to SetupCommand(),
         "admin" to AdminCommand(),
         "stats" to StatsCommand(),
@@ -89,6 +91,10 @@ object SlashCommandManager {
                     }
                 }
                 subcommand("daily", "Solve today's seeded medium quick math challenge")
+            },
+
+            Command("guess-the", "Play a guess-the challenge") {
+                subcommand("flag", "Guess the country from its flag")
             },
 
             Command("stats", "Inspect your personal stats") {

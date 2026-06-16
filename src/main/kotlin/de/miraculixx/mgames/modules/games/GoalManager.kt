@@ -24,9 +24,10 @@ object GoalManager {
         winnerSnowflake: Long?,
         loserSnowflake: Long?,
         guildSnowflake: Long,
-        difficultyMultiplier: Int = 1
+        difficultyMultiplier: Int = 1,
+        coinOverride: Int? = null
     ): Int {
-        val coins = game.coinValue * difficultyMultiplier.coerceIn(1, 3)
+        val coins = coinOverride ?: (game.coinValue * difficultyMultiplier.coerceIn(1, 3))
         CoroutineScope(Dispatchers.Default).launch {
             SQL.addGameHistory(
                 guildSnowflake,

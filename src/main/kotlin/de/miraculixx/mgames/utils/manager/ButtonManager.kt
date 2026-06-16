@@ -1,6 +1,7 @@
 package de.miraculixx.mgames.utils.manager
 
 import de.miraculixx.mgames.modules.games.connectFour.C4Button
+import de.miraculixx.mgames.modules.games.guessThe.GuessTheCommand
 import de.miraculixx.mgames.modules.games.quickMath.QuickMath
 import de.miraculixx.mgames.modules.games.tictactoe.TTTListener
 import de.miraculixx.mgames.modules.trivia.TriviaButton
@@ -13,6 +14,7 @@ object ButtonManager {
         "GAME_TTT" to TTTListener(),
         "GAME_4G" to C4Button(),
         "QUICK-MATH" to QuickMath,
+        "GUESS-THE" to GuessTheCommand,
         "TRIVIA" to TriviaButton()
     )
 
@@ -23,6 +25,7 @@ object ButtonManager {
             id.startsWith("GAME_4G_") -> buttons["GAME_4G"]
             id.startsWith("TRIVIA:") -> buttons["TRIVIA"]
             id.startsWith("QUICK-MATH:") -> buttons["QUICK-MATH"]
+            id.startsWith("GUESS-THE:") -> buttons["GUESS-THE"]
             else -> buttons[id]
         }
         commandClass?.trigger(it)

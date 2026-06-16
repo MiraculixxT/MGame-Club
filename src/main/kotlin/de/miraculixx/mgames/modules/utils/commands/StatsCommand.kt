@@ -57,9 +57,10 @@ class StatsCommand : SlashCommandEvent {
         val todayString = today.toString()
         val yesterdayString = today.minus(1, DateTimeUnit.DAY).toString()
         val dailyDataByGame = dailyData.associateBy { it.game }
-        val titleWidth = Game.entries.maxOf { it.title.length }
+        val dailyGames = Game.entries.filter { it.supportsDaily }
+        val titleWidth = dailyGames.maxOf { it.title.length }
 
-        return Game.entries
+        return dailyGames
             .map { game ->
                 val data = dailyDataByGame[game.name]
                 val completedToday = data?.lastPlayDate == todayString

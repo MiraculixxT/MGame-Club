@@ -13,6 +13,7 @@ object Icons {
     const val goalFlag = "\uD83C\uDFC1"
     const val play = "𝗣𝗟𝗔𝗬"
     const val replay = "\uD835\uDDE5\uD835\uDDD8\uD835\uDDE3\uD835\uDDDF\uD835\uDDD4\uD835\uDDEC"
+    const val star = "⭐"
 
     // Game specific
     const val tictactoe = "<:tictactoe:1513850555796029531>"
