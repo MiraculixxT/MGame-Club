@@ -12,7 +12,7 @@ import de.miraculixx.mgames.modules.trivia.TriviaDifficulty
 import de.miraculixx.mgames.modules.utils.commands.AdminCommand
 import de.miraculixx.mgames.modules.utils.commands.StatsCommand
 import de.miraculixx.mgames.modules.utils.commands.SetupCommand
-import de.miraculixx.mgames.utils.log
+import de.miraculixx.mgames.utils.logger
 import dev.minn.jda.ktx.events.listener
 import dev.minn.jda.ktx.interactions.commands.Command
 import dev.minn.jda.ktx.interactions.commands.choice
@@ -37,7 +37,7 @@ object SlashCommandManager {
 
     fun startListen(jda: JDA) = jda.listener<SlashCommandInteractionEvent> {
         val commandClass = commands[it.name] ?: return@listener
-        ">> ${it.user.asTag} -> /${it.name} ${it.subcommandName ?: ""}".log()
+        logger.info(">> ${it.user.asTag} -> /${it.name} ${it.subcommandName ?: ""}")
         commandClass.trigger(it)
     }
 

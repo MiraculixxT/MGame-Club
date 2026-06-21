@@ -6,9 +6,8 @@ import de.miraculixx.mgames.modules.games.tictactoe.TTTGame
 import de.miraculixx.mgames.modules.games.utils.FieldsTwoPlayer
 import de.miraculixx.mgames.modules.games.utils.enums.Game
 import de.miraculixx.mgames.modules.games.utils.SimpleGame
-import de.miraculixx.mgames.utils.Color
 import de.miraculixx.mgames.utils.botID
-import de.miraculixx.mgames.utils.log
+import de.miraculixx.mgames.utils.logger
 import dev.minn.jda.ktx.coroutines.await
 import net.dv8tion.jda.api.entities.Guild
 import net.dv8tion.jda.api.entities.Member
@@ -124,20 +123,20 @@ object GameManager {
 
     fun cleanupOldInstances(maxAgeMillis: Long) {
         val now = System.currentTimeMillis()
-        "---=---> GAME CLEANUP <---=---".log(Color.YELLOW)
+        logger.info("---=---> GAME CLEANUP <---=---")
         guilds.forEach { (guild, data) ->
             data.forEach { (type, games) ->
                 val before = games.size
                 games.entries.removeIf { (_, instance) -> now - instance.startedAt > maxAgeMillis }
                 val removed = before - games.size
-                if (removed > 0) " - Guild $guild removed $removed stale ${type.title} instance(s)".log(Color.YELLOW)
+                if (removed > 0) logger.info(" - Guild $guild removed $removed stale ${type.title} instance(s)")
             }
         }
-        "---=---=---=---=---=---=---=---".log(Color.YELLOW)
+        logger.info("---=---=---=---=---=---=---=---")
     }
 
     suspend fun shutdown() {
-        "---=---> GAME MANAGER <---=---".log(Color.YELLOW)
+        logger.info("---=---> GAME MANAGER <---=---")
         guilds.forEach { (guild, data) ->
             data.forEach { (type, games) ->
                 games.toMap().forEach { (uuid, instance) ->
@@ -145,9 +144,9 @@ object GameManager {
                     removeGame(guild, type, uuid)
                 }
             }
-            " - Guild $guild offline".log(Color.YELLOW)
+            logger.info(" - Guild $guild offline")
         }
-        "---=---=---=---=---=---=---=---".log(Color.YELLOW)
+        logger.info("---=---=---=---=---=---=---=---")
     }
 
     data class ActiveGame(val uuid: UUID, val playerIds: Set<Long>)

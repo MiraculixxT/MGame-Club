@@ -16,7 +16,7 @@ import de.miraculixx.mgames.utils.Icons
 import de.miraculixx.mgames.utils.api.SQL
 import de.miraculixx.mgames.utils.extensions.awaitV2
 import de.miraculixx.mgames.utils.extensions.queueV2
-import de.miraculixx.mgames.utils.log
+import de.miraculixx.mgames.utils.logger
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.interactions.components.Container
 import dev.minn.jda.ktx.interactions.components.TextDisplay
@@ -334,7 +334,7 @@ class C4Game(
 
     init {
         if (member2.user.isBot) {
-            "GAME > Start Bot Game".log()
+            logger.info("GAME > Start Bot Game")
             bot = C4Bot(botLevel, random)
         }
         guildID = guild.idLong

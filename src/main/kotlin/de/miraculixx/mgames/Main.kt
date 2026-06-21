@@ -5,7 +5,7 @@ import de.miraculixx.mgames.modules.games.GameManager
 import de.miraculixx.mgames.modules.games.UpdaterGame
 import de.miraculixx.mgames.modules.utils.events.TabComplete
 import de.miraculixx.mgames.utils.api.SQL
-import de.miraculixx.mgames.utils.log
+import de.miraculixx.mgames.utils.logger
 import de.miraculixx.mgames.utils.manager.ButtonManager
 import de.miraculixx.mgames.utils.manager.DropDownManager
 import de.miraculixx.mgames.utils.manager.ModalManager
@@ -62,7 +62,7 @@ class Main {
             UpdaterGame.start(jda) else null
 
         SQL
-        "MKord is now online!".log()
+        logger.info("MKord is now online!")
 
         shutdown()
     }

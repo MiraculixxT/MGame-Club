@@ -1,11 +1,10 @@
 package de.miraculixx.mgames.modules.games
 
 import de.miraculixx.mgames.modules.trivia.ensureDailyTriviaQuestion
-import de.miraculixx.mgames.utils.Color as LogColor
 import de.miraculixx.mgames.utils.Colors
 import de.miraculixx.mgames.utils.Icons
 import de.miraculixx.mgames.utils.api.SQL
-import de.miraculixx.mgames.utils.log
+import de.miraculixx.mgames.utils.logger
 import dev.minn.jda.ktx.interactions.components.Container
 import kotlinx.coroutines.*
 import kotlinx.datetime.DateTimeUnit
@@ -60,19 +59,19 @@ object UpdaterGame {
     }
 
     suspend fun updateDailyPlays() {
-        "---=---> DAILY UPDATE <---=---".log(LogColor.YELLOW)
+        logger.info("---=---> DAILY UPDATE <---=---")
         val seed = GoalManager.getDailySeed()
         updateDailyTriviaQuestion()
-        " - Daily seed: $seed".log(LogColor.YELLOW)
+        logger.info(" - Daily seed: $seed")
     }
 
     private suspend fun updateDailyTriviaQuestion() {
         runCatching { ensureDailyTriviaQuestion() }
-            .onFailure { " - Daily trivia preload failed: ${it.message}".log(LogColor.YELLOW) }
+            .onFailure { logger.warn(" - Daily trivia preload failed: ${it.message}") }
     }
 
     private fun updateLeaderboards() = runBlocking {
-        "---=---> STATS UPDATE <---=---".log(LogColor.YELLOW)
+        logger.info("---=---> STATS UPDATE <---=---")
         val call = SQL.call("SELECT Stats_Channel, Discord_ID FROM guildData WHERE Premium=1 && Stats_Channel!=0")
 
         var counter = 0
@@ -87,15 +86,15 @@ object UpdaterGame {
             }
         }
 
-        "Finished checking $counter Guilds".log(LogColor.YELLOW)
-        "---=---=---=---=---=---=---=---".log(LogColor.YELLOW)
+        logger.info("Finished checking $counter Guilds")
+        logger.info("---=---=---=---=---=---=---=---")
     }
 
     suspend fun updateLeaderboardGuild(guild: Guild, statsChannel: MessageChannel?) {
         val guildID = guild.idLong
         if (statsChannel == null) {
             SQL.update("UPDATE guildData SET Stats_Channel=0 WHERE Discord_ID=$guildID")
-            " - GUILD REMOVE > $guildID deleted their stats channel".log(LogColor.YELLOW)
+            logger.info(" - GUILD REMOVE > $guildID deleted their stats channel")
             return
         }
         val dailyDate = GoalManager.currentDailyDate()
@@ -121,7 +120,7 @@ object UpdaterGame {
                 }
             }
         } catch (e: InsufficientPermissionException) {
-            " - NO PERMISSION > Guild $guildID".log(LogColor.YELLOW)
+            logger.warn(" - NO PERMISSION > Guild $guildID")
         }
     }
 

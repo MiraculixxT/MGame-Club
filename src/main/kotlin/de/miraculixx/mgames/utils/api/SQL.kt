@@ -4,9 +4,7 @@ import de.miraculixx.mgames.config.ConfigManager
 import de.miraculixx.mgames.config.LanguageManager
 import de.miraculixx.mgames.modules.games.utils.enums.Game
 import de.miraculixx.mgames.modules.games.utils.enums.GameMode
-import de.miraculixx.mgames.utils.Color
-import de.miraculixx.mgames.utils.error
-import de.miraculixx.mgames.utils.log
+import de.miraculixx.mgames.utils.logger
 import kotlinx.coroutines.delay
 import java.sql.Connection
 import java.sql.DriverManager
@@ -25,8 +23,8 @@ object SQL {
             ConfigManager.coreConfig.SQL_TOKEN
         )
         if (con.isValid(0))
-            ">> Connection established to MariaDB".log(Color.GREEN)
-        else ">> ERROR > MariaDB refused the connection".error()
+            logger.info(">> Connection established to MariaDB")
+        else logger.error(">> ERROR > MariaDB refused the connection")
         return con
     }
 
@@ -77,7 +75,7 @@ object SQL {
 
     suspend fun call(statement: String, resultSet: Int? = null): ResultSet {
         while (!connection.isValid(1)) {
-            "ERROR >> SQL - No valid connection!".error()
+            logger.error("ERROR >> SQL - No valid connection!")
             connection = connect()
             delay(1000.milliseconds)
         }
@@ -89,7 +87,7 @@ object SQL {
 
     suspend fun update(statement: String): Int {
         while (!connection.isValid(1)) {
-            "ERROR >> SQL - No valid connection!".error()
+            logger.error("ERROR >> SQL - No valid connection!")
             connection = connect()
             delay(1000.milliseconds)
         }
