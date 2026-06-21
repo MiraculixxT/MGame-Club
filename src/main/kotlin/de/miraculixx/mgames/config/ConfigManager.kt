@@ -1,5 +1,6 @@
 package de.miraculixx.mgames.config
 
+import de.miraculixx.mgames.utils.logger
 import kotlinx.serialization.Serializable
 import kotlin.io.path.Path
 import kotlin.io.path.writeText
@@ -21,6 +22,7 @@ object ConfigManager {
         coreConfig = coreFile.load<Core>(Core())
         settingsConfig = settingsFile.load<Settings>(Settings())
         gameSettingsConfig = gameSettingsFile.load<GameSettings>(GameSettings())
+        logger.info(gameSettingsConfig.toString())
     }
 
     fun saveConfig() {

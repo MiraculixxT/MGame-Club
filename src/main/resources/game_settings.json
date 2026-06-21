@@ -1,6 +1,6 @@
 {
   "connect4": {
-    "rawEmotes": [
+    "emotes": [
       { "emote": "🔵", "price": 300 },
       { "emote": "🟤", "price": 300 },
       { "emote": "🟢", "price": 300 },
@@ -12,9 +12,7 @@
       { "emote": "😡", "price": 3000 },
       { "emote": "🥶", "price": 3000 },
       { "emote": "🤡", "price": 3000 },
-      { "emote": "😈", "price": 3000 }
-    ],
-    "specialEmotes": [
+      { "emote": "😈", "price": 3000 },
       { "emote": "<:OMEGALUL:816312423115915305>", "price": 5000 },
       { "emote": "<:DD:852962423094509638>", "price": 5000 },
       { "emote": "<:xD:949671949670428733>", "price": 5000 },

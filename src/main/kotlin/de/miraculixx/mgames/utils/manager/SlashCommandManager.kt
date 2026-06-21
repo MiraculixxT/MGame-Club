@@ -81,7 +81,7 @@ object SlashCommandManager {
                     }
                 }
                 subcommand("daily", "Play today's seeded medium Connect 4 challenge")
-                //subcommand("skin", "Choose a Skin for your Chip")
+                subcommand("skin", "Buy and switch your Connect 4 chip skins")
             },
 
             Command("quick-math", "Solve a quick math challenge") {

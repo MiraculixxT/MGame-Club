@@ -4,8 +4,9 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class Connect4Settings(
-    val rawEmotes: List<Connect4Emotes> = emptyList(),
-    val specialEmotes: List<Connect4Emotes> = emptyList()
+    // Every buyable chip skin. `emote` is either a unicode emoji or a Discord-formatted
+    // custom emote (e.g. "<:name:id>"); both render the same way in selects and the board.
+    val emotes: List<Connect4Emotes> = emptyList()
 )
 
 @Serializable
