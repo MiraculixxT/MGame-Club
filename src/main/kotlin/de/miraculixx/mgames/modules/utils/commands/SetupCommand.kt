@@ -38,7 +38,7 @@ class SetupCommand : SlashCommandEvent {
                             UpdaterGame.updateLeaderboardGuild(guild, target)
                             hook.editOriginal("**>> ERFOLG**\n${target.asMention} ist nun der Game Stats Channel!").queue()
 
-                            SQL.update("UPDATE guildData SET Stats_Channel=${target.id} WHERE Discord_ID=${guild.id}")
+                            SQL.setStatsChannel(guild.idLong, target.idLong)
                         } catch (e: InsufficientPermissionException) {
                             e.notify(hook)
                         }

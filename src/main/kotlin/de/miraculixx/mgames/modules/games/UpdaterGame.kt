@@ -72,13 +72,9 @@ object UpdaterGame {
 
     private fun updateLeaderboards() = runBlocking {
         logger.info("---=---> STATS UPDATE <---=---")
-        val call = SQL.call("SELECT Stats_Channel, Discord_ID FROM guildData WHERE Premium=1 && Stats_Channel!=0")
+        val premiumGuilds = SQL.getPremiumStatsGuilds()
 
-        var counter = 0
-        while (call.next()) {
-            counter++
-            val guildID = call.getLong("Discord_ID")
-            val statsChannelID = call.getLong("Stats_Channel")
+        premiumGuilds.forEach { (guildID, statsChannelID) ->
             launch {
                 val guild = JDA!!.getGuildById(guildID) ?: return@launch
                 val channel = guild.getTextChannelById(statsChannelID)
@@ -86,14 +82,14 @@ object UpdaterGame {
             }
         }
 
-        logger.info("Finished checking $counter Guilds")
+        logger.info("Finished checking ${premiumGuilds.size} Guilds")
         logger.info("---=---=---=---=---=---=---=---")
     }
 
     suspend fun updateLeaderboardGuild(guild: Guild, statsChannel: MessageChannel?) {
         val guildID = guild.idLong
         if (statsChannel == null) {
-            SQL.update("UPDATE guildData SET Stats_Channel=0 WHERE Discord_ID=$guildID")
+            SQL.setStatsChannel(guildID, 0)
             logger.info(" - GUILD REMOVE > $guildID deleted their stats channel")
             return
         }

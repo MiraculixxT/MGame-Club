@@ -50,14 +50,14 @@ Handlers implement the interfaces in `utils/entities/` (`SlashCommandEvent`, `Bu
 
 ### Persistence (`utils/api/SQL.kt`)
 
-- Single shared JDBC `Connection`; `call()`/`update()` are `suspend` and auto-reconnect if the connection drops.
-- **Queries are built by string interpolation, not prepared-statement parameters.** Free-text values (trivia, match IDs, game keys) are manually escaped via `.replace("'", "''")`; numeric IDs are trusted as Longs. Follow this existing convention and escape any new string input the same way.
+- Backed by a **HikariCP** pool (`dataSource`, max 10). All access funnels through two private `suspend` helpers — `query(sql, vararg params) { rs -> ... }` (reads, maps + closes the ResultSet) and `update(sql, vararg params)` (writes) — each borrowing a pooled `Connection` on `Dispatchers.IO`. Public methods (`getUser`, `addCoins`, …) are `suspend` and must be called from a coroutine; they never block the JDA/event threads.
+- **Use bind parameters (`?`), never string-interpolate values into SQL.** The only interpolated identifier is the `setActiveEmote` column name, which is whitelisted. Add new DB access as a typed method on `SQL` going through `query`/`update`, not raw SQL at the call site.
 - `getUser`/`getGuild` lazily create rows on first access, so callers can assume a record exists after calling them.
 
 ### i18n & logging
 
 - `msg(key, guildID, args)` (`config/MessageExtensions.kt`) resolves translations from `resources/lang/{de_DE,en_US}.yml` via `LanguageManager`, falling back EN → raw key. Args are `%KEY%` placeholders. Guild language is cached in memory and fetched async from SQL on first miss (defaulting EN until loaded) — user-facing strings should go through `msg`, not be hardcoded.
-- Console output uses `String.log(Color)` / `String.error()` extensions (ANSI-colored via SLF4J), not raw `println`. Discord-facing colored text uses the separate `Ansi` object (code blocks) and `Colors`/`Icons` for embeds.
+- Logging goes through the shared `logger` (`utils/LoggingUtil.kt`, SLF4J) — `logger.info/warn/error`, not raw `println`. Output format (colored levels, `logs/latest.log` file appender) is configured in `resources/logback.xml` via **logback-classic**. Discord-facing colored text uses the separate `Ansi` object (code blocks) and `Colors`/`Icons` for embeds.
 
 ## Conventions
 

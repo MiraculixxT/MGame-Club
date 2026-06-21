@@ -39,6 +39,7 @@ dependencies {
     //Data Storing Libraries (YAML + SQL)
     implementation("org.yaml:snakeyaml:2.6")
     implementation("org.mariadb.jdbc:mariadb-java-client:3.5.8")
+    implementation("com.zaxxer:HikariCP:6.3.0")
 }
 
 application {
